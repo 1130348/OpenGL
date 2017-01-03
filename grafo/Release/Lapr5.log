@@ -1,0 +1,22 @@
+﻿Build started 12/19/2016 12:02:03 PM.
+     1>Project "C:\Users\egidi\Desktop\grafo\Lapr5.vcxproj" on node 2 (Build target(s)).
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\CL.exe /c /Zi /nologo /W3 /WX- /O2 /Oi /Oy- /GL /D WIN32 /D NDEBUG /D _CONSOLE /D _UNICODE /D UNICODE /Gm- /EHsc /MTd /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"Release\\" /Fd"Release\vc140.pdb" /Gd /TP /analyze- /errorReport:prompt grafos.cpp lapr5.cpp
+         grafos.cpp
+         lapr5.cpp
+     1>lapr5.cpp(34): warning C4838: conversion from 'double' to 'const GLfloat' requires a narrowing conversion
+     1>lapr5.cpp(42): warning C4838: conversion from 'double' to 'const GLfloat' requires a narrowing conversion
+     1>lapr5.cpp(50): warning C4838: conversion from 'double' to 'const GLfloat' requires a narrowing conversion
+     1>lapr5.cpp(58): warning C4838: conversion from 'double' to 'const GLfloat' requires a narrowing conversion
+     1>lapr5.cpp(238): warning C4838: conversion from 'double' to 'const GLfloat' requires a narrowing conversion
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\egidi\Desktop\grafo\Release\Lapr5.exe" /INCREMENTAL:NO /NOLOGO legacy_stdio_definitions.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /Debug /PDB:"C:\Users\egidi\Desktop\grafo\Release\Lapr5.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /LTCG:incremental /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\egidi\Desktop\grafo\Release\Lapr5.lib" /MACHINE:X86 /SAFESEH Release\grafos.obj
+         Release\lapr5.obj
+         libjpeg.lib
+     1>lapr5.obj : error LNK2001: unresolved external symbol _read_JPEG_file
+     1>C:\Users\egidi\Desktop\grafo\Release\Lapr5.exe : fatal error LNK1120: 1 unresolved externals
+     1>Done Building Project "C:\Users\egidi\Desktop\grafo\Lapr5.vcxproj" (Build target(s)) -- FAILED.
+
+Build FAILED.
+
+Time Elapsed 00:00:02.55
