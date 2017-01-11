@@ -35,5 +35,6 @@ Arco criaArco(int, int, float, float);
 
 void gravaGrafo();
 void leGrafo();
+void leGrafoHTTP(int , int, No[], Arco[]);
 
 #endif

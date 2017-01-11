@@ -9,7 +9,9 @@
 #include <GL/GLAux.h>
 #include <iostream>
 #include <stdio.h>
+#include <algorithm>
 #include <tchar.h>
+#include <vector>
 #include "grafos.h"
 #include "httpClient.h"
 #include "httpRequest.h"
@@ -21,7 +23,29 @@ using namespace irrklang;
 #define NOME_TEXTURA_CHAO	"cobble.jpg"
 #define NOME_TEXTURE_CHAO_NO "calcada.jpg"
 #define NOME_TEXTURA_PAREDE "parede.jpg"
-#define NUM_TEXTURAS		2
+#define NOME_TEXTURA_SKYBOX_BK "miramar_bk.jpg"
+#define NOME_TEXTURA_SKYBOX_FT "miramar_ft.jpg"
+#define NOME_TEXTURA_SKYBOX_RT "miramar_rt.jpg"
+#define NOME_TEXTURA_SKYBOX_DN "miramar_dn.jpg"
+#define NOME_TEXTURA_SKYBOX_LF "miramar_lf.jpg"
+#define NOME_TEXTURA_SKYBOX_UP "miramar_up.jpg"
+#define NOME_TEXTURA_SKYBOX_STORM_BK "stormydays_bk.jpg"
+#define NOME_TEXTURA_SKYBOX_STORM_FT "stormydays_ft.jpg"
+#define NOME_TEXTURA_SKYBOX_STORM_RT "stormydays_rt.jpg"
+#define NOME_TEXTURA_SKYBOX_STORM_DN "stormydays_dn.jpg"
+#define NOME_TEXTURA_SKYBOX_STORM_LF "stormydays_lf.jpg"
+#define NOME_TEXTURA_SKYBOX_STORM_UP "stormydays_up.jpg"
+#define NOME_TEXTURA_SKYBOX_NIGHT_BK "space_bk.jpg"
+#define NOME_TEXTURA_SKYBOX_NIGHT_FT "space_ft.jpg"
+#define NOME_TEXTURA_SKYBOX_NIGHT_RT "space_rt.jpg"
+#define NOME_TEXTURA_SKYBOX_NIGHT_DN "space_dn.jpg"
+#define NOME_TEXTURA_SKYBOX_NIGHT_LF "space_lf.jpg"
+#define NOME_TEXTURA_SKYBOX_NIGHT_UP "space_up.jpg"
+
+#define NUM_TEXTURAS		20
+#define MAX_PARTICLES 5000
+#define WCX		640
+#define WCY		480
 
 #define graus(X) (double)((X)*180/M_PI)
 #define rad(X)   (double)((X)*M_PI/180)
@@ -89,6 +113,29 @@ typedef struct Camera{
 
 }Camera;
 
+
+typedef struct Poi {
+	string local;
+	int id;
+	string nome;
+	string categoria;
+	string descricao;
+	int duracaoVisita;
+	string nomeLocal;
+	float x;
+	float y;
+
+}Poi;
+
+typedef struct Percurso {
+	string nome;
+	int id;
+	string descricao;
+	vector<Poi> pois;
+
+}Percurso;
+
+
 typedef struct Estado{
 	Camera		camera;
 	int			xMouse,yMouse;
@@ -116,8 +163,57 @@ typedef struct Modelo {
 
 Estado estado;
 Modelo modelo;
-GLuint texture[3];
+Percurso rota;
+GLuint texture[21];
 ISoundEngine* engine = createIrrKlangDevice();
+
+GLboolean TESTES;
+string nome;
+GLboolean RAIN;
+GLboolean SNOW;
+GLboolean HAIL;
+int weather;
+
+
+float slowdown = 2.0;
+float velocity = 0.0;
+float zoom = -40.0;
+float pan = 0.0;
+float tilt = 0.0;
+float hailsize = 0.1;
+
+int loop;
+int fall;
+
+//floor colors
+float r = 0.0;
+float g = 1.0;
+float b = 0.0;
+float ground_points[21][21][3];
+float ground_colors[21][21][4];
+float accum = -10.0;
+
+typedef struct {
+	// Life
+	bool alive;	// is the particle alive?
+	float life;	// particle lifespan
+	float fade; // decay
+				// color
+	float red;
+	float green;
+	float blue;
+	// Position/direction
+	float xpos;
+	float ypos;
+	float zpos;
+	// Velocity/Direction, only goes down in y dir
+	float vel;
+	// Gravity
+	float gravity;
+}particles;
+
+// Paticle System
+particles par_sys[MAX_PARTICLES];
 
 void initEstado(){
 	estado.camera.dir_lat=M_PI/4;
@@ -134,6 +230,49 @@ void initEstado(){
 	estado.paredes = GL_TRUE;
 	estado.apresentaNormais=GL_FALSE;
 	estado.lightViewer=1;
+	TESTES = GL_FALSE;
+	weather = 0;
+
+}
+
+void initParticles(int i) {
+	par_sys[i].alive = true;
+	par_sys[i].life = 1.0;
+	par_sys[i].fade = float(rand() % 100) / 1000.0f + 0.003f;
+
+	par_sys[i].xpos = (float)(rand() % -100) + -50;
+	par_sys[i].ypos = 30.0;
+	par_sys[i].zpos = (float)(rand() % -150) + -50;
+
+	par_sys[i].red = 0.5;
+	par_sys[i].green = 0.5;
+	par_sys[i].blue = 1.0;
+
+	par_sys[i].vel = velocity;
+	par_sys[i].gravity = -5.0;//-0.8;
+
+
+
+}
+
+unsigned int split(const std::string &txt, std::vector<std::string> &strs, char ch)
+{
+	unsigned int pos = txt.find(ch);
+	unsigned int initialPos = 0;
+	strs.clear();
+
+	// Decompose statement
+	while (pos != std::string::npos) {
+		strs.push_back(txt.substr(initialPos, pos - initialPos + 1));
+		initialPos = pos + 1;
+
+		pos = txt.find(ch, initialPos);
+	}
+
+	// Add the last one
+	strs.push_back(txt.substr(initialPos, min(pos, txt.size()) - initialPos + 1));
+
+	return strs.size();
 }
 
 void initModelo(){
@@ -151,7 +290,7 @@ void initModelo(){
 }
 
 void FreeTexture(GLuint texture) {
-	glDeleteTextures(3, &texture);
+	glDeleteTextures(21, &texture);
 }
 
 
@@ -191,12 +330,53 @@ void myInit()
 	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, estado.lightViewer); 
 	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE); 
 
-	glGenTextures(3, texture);
+	glGenTextures(21, texture);
 	glBindTexture(GL_TEXTURE_2D, texture[0]);
 
 	loadTexture(texture[0], NOME_TEXTURA_CHAO);
 	loadTexture(texture[1], NOME_TEXTURA_PAREDE);
 	loadTexture(texture[2], NOME_TEXTURE_CHAO_NO);
+
+	loadTexture(texture[3], NOME_TEXTURA_SKYBOX_BK);
+	loadTexture(texture[4], NOME_TEXTURA_SKYBOX_DN);
+	loadTexture(texture[5], NOME_TEXTURA_SKYBOX_FT);
+	loadTexture(texture[6], NOME_TEXTURA_SKYBOX_LF);
+	loadTexture(texture[7], NOME_TEXTURA_SKYBOX_RT);
+	loadTexture(texture[8], NOME_TEXTURA_SKYBOX_UP);
+
+	loadTexture(texture[9], NOME_TEXTURA_SKYBOX_STORM_BK);
+	loadTexture(texture[10], NOME_TEXTURA_SKYBOX_STORM_DN);
+	loadTexture(texture[11], NOME_TEXTURA_SKYBOX_STORM_FT);
+	loadTexture(texture[12], NOME_TEXTURA_SKYBOX_STORM_LF);
+	loadTexture(texture[13], NOME_TEXTURA_SKYBOX_STORM_RT);
+	loadTexture(texture[14], NOME_TEXTURA_SKYBOX_STORM_UP);
+
+	loadTexture(texture[15], NOME_TEXTURA_SKYBOX_NIGHT_BK);
+	loadTexture(texture[16], NOME_TEXTURA_SKYBOX_NIGHT_DN);
+	loadTexture(texture[17], NOME_TEXTURA_SKYBOX_NIGHT_FT);
+	loadTexture(texture[18], NOME_TEXTURA_SKYBOX_NIGHT_LF);
+	loadTexture(texture[19], NOME_TEXTURA_SKYBOX_NIGHT_RT);
+	loadTexture(texture[20], NOME_TEXTURA_SKYBOX_NIGHT_UP);
+
+	int x, z;
+
+	for (z = 0; z < 21; z++) {
+		for (x = 0; x < 21; x++) {
+			ground_points[x][z][0] = x - 10.0;
+			ground_points[x][z][1] = accum;
+			ground_points[x][z][2] = z - 10.0;
+
+			ground_colors[z][x][0] = r; // red value
+			ground_colors[z][x][1] = g; // green value
+			ground_colors[z][x][2] = b; // blue value
+			ground_colors[z][x][3] = 0.0; // acummulation factor
+		}
+	}
+
+	// Initialize particles
+	for (loop = 0; loop < MAX_PARTICLES; loop++) {
+		initParticles(loop);
+	}
 
 	initModelo();
 	initEstado();
@@ -204,29 +384,153 @@ void myInit()
 	gluQuadricDrawStyle(modelo.quad, GLU_FILL);
 	gluQuadricNormals(modelo.quad, GLU_OUTSIDE);
 
-	leGrafo();
+	//Chamar HTTP
+	//leGrafo();
+}
+
+// For Hail
+void drawHail() {
+	float x, y, z;
+
+	for (loop = 0; loop < MAX_PARTICLES; loop = loop + 2) {
+		if (par_sys[loop].alive == true) {
+			x = par_sys[loop].xpos;
+			y = par_sys[loop].zpos + zoom;
+			z = par_sys[loop].ypos;
+
+			// Draw particles
+			glColor3f(0.8, 0.8, 0.9);
+			glBegin(GL_QUADS);
+			// Front
+			glVertex3f(x - hailsize, y - hailsize, z + hailsize); // lower left
+			glVertex3f(x - hailsize, y + hailsize, z + hailsize); // upper left
+			glVertex3f(x + hailsize, y + hailsize, z + hailsize); // upper right
+			glVertex3f(x + hailsize, y - hailsize, z + hailsize); // lower left
+																  //Left
+			glVertex3f(x - hailsize, y - hailsize, z + hailsize);
+			glVertex3f(x - hailsize, y - hailsize, z - hailsize);
+			glVertex3f(x - hailsize, y + hailsize, z - hailsize);
+			glVertex3f(x - hailsize, y + hailsize, z + hailsize);
+			// Back
+			glVertex3f(x - hailsize, y - hailsize, z - hailsize);
+			glVertex3f(x - hailsize, y + hailsize, z - hailsize);
+			glVertex3f(x + hailsize, y + hailsize, z - hailsize);
+			glVertex3f(x + hailsize, y - hailsize, z - hailsize);
+			//Right
+			glVertex3f(x + hailsize, y + hailsize, z + hailsize);
+			glVertex3f(x + hailsize, y + hailsize, z - hailsize);
+			glVertex3f(x + hailsize, y - hailsize, z - hailsize);
+			glVertex3f(x + hailsize, y - hailsize, z + hailsize);
+			//Top 
+			glVertex3f(x - hailsize, y + hailsize, z + hailsize);
+			glVertex3f(x - hailsize, y + hailsize, z - hailsize);
+			glVertex3f(x + hailsize, y + hailsize, z - hailsize);
+			glVertex3f(x + hailsize, y + hailsize, z + hailsize);
+			//Bottom 
+			glVertex3f(x - hailsize, y - hailsize, z + hailsize);
+			glVertex3f(x - hailsize, y - hailsize, z - hailsize);
+			glVertex3f(x + hailsize, y - hailsize, z - hailsize);
+			glVertex3f(x + hailsize, y - hailsize, z + hailsize);
+			glEnd();
+
+			// Update values
+			//Move
+			/*if (par_sys[loop].ypos <= -10) {
+				par_sys[loop].vel = par_sys[loop].vel * -1.0;
+			}*/
+			par_sys[loop].ypos += par_sys[loop].vel / (slowdown * 1000); // * 1000
+			par_sys[loop].vel += par_sys[loop].gravity;
+
+			// Decay
+			par_sys[loop].life -= par_sys[loop].fade;
+
+			//Revive 
+			if (par_sys[loop].life < 0.0) {
+				initParticles(loop);
+			}
+		}
+	}
+}
+
+// For Snow
+void drawSnow() {
+	float x, y, z;
+	for (loop = 0; loop < MAX_PARTICLES; loop = loop + 2) {
+		if (par_sys[loop].alive == true) {
+			x = par_sys[loop].xpos;
+			y = par_sys[loop].zpos + zoom;
+			z = par_sys[loop].ypos;
+
+			// Draw particles
+			glColor3f(1.0, 1.0, 1.0);
+			glPushMatrix();
+			glTranslatef(x, y, z);
+			glutSolidSphere(0.2, 16, 16);
+			glPopMatrix();
+
+			// Update values
+			//Move
+			par_sys[loop].ypos += par_sys[loop].vel / (slowdown * 1000);
+			par_sys[loop].vel += par_sys[loop].gravity;
+			// Decay
+			par_sys[loop].life -= par_sys[loop].fade;
+
+			if (par_sys[loop].ypos <= -10) {
+				int zi = z - zoom + 10;
+				int xi = x + 10;
+				ground_colors[zi][xi][0] = 1.0;
+				ground_colors[zi][xi][2] = 1.0;
+				ground_colors[zi][xi][3] += 1.0;
+				if (ground_colors[zi][xi][3] > 1.0) {
+					ground_points[xi][zi][1] += 0.1;
+				}
+				par_sys[loop].life = -1.0;
+			}
+
+			//Revive 
+			if (par_sys[loop].life < 0.0) {
+				initParticles(loop);
+			}
+		}
+	}
+}
+
+void drawRain() {
+	float x, y, z;
+	for (loop = 0; loop < MAX_PARTICLES; loop = loop + 2) {
+		if (par_sys[loop].alive == true) {
+			x = par_sys[loop].xpos;
+			y = par_sys[loop].ypos;
+			z = par_sys[loop].zpos+zoom;
+
+			// Draw particles
+			glColor3f(0, 0, 1.0);
+			glBegin(GL_LINES);
+			glVertex3f(x, z, y);
+			glVertex3f(x, z, y + 0.5);
+			glEnd();
+
+			// Update values
+			//Move
+			// Adjust slowdown for speed!
+			par_sys[loop].ypos += par_sys[loop].vel / (slowdown * 1000);
+			par_sys[loop].vel += par_sys[loop].gravity;
+			// Decay
+			par_sys[loop].life -= par_sys[loop].fade;
+
+			if (par_sys[loop].ypos <= -10) {
+				par_sys[loop].life = -1.0;
+			}
+			//Revive 
+			if (par_sys[loop].life < 0.0) {
+				initParticles(loop);
+			}
+		}
+	}
 }
 
 void imprime_ajuda(void)
 {
-
-
-	/*//You create the request
-	httpRequest r;
-	//Set the host,uri and headers
-	r.setHost("www.learncpp.com");
-	r.setUri("/");
-	r.addHeader("Connection: close");
-	//Build the request
-	r.buildRequest();
-
-	//Create the client
-	httpClient *cl = new httpClient();
-	//Send the request
-	cl->sendRequest(r);
-
-	//Get the Response
-	cout << cl->getResponse() << endl;*/
 
   printf("\n\nDesenho de um labirinto a partir de um grafo\n");
   printf("h,H - Ajuda \n");
@@ -674,6 +978,8 @@ void desenhaEixo(){
 	glPopMatrix();
 }
 
+
+
 #define EIXO_X		1
 #define EIXO_Y		2
 #define EIXO_Z		3
@@ -709,6 +1015,112 @@ void desenhaPlanoDrag(int eixo){
 			glVertex3f(-100,0,100);
 		glEnd();
 	glPopMatrix();
+}
+
+void skybox() {
+
+
+	// Store the current matrix
+	glPushMatrix();
+	
+	// Reset and transform the matrix.
+	//glLoadIdentity();
+	/*gluLookAt(
+		0, 0, 0,
+		estado.camera.center[0], estado.camera.center[1], estado.camera.center[2],
+		0, 1, 0);
+
+	// Enable/Disable features
+	/*glPushAttrib(GL_ENABLE_BIT);
+	glEnable(GL_TEXTURE_2D);
+	glDisable(GL_DEPTH_TEST);
+	glDisable(GL_LIGHTING);
+	glDisable(GL_BLEND);*/
+	glEnable(GL_TEXTURE_2D);
+	// Just in case we set all vertices to white.
+	glColor4f(1, 1, 1, 1);
+
+	//tamanho da skybox
+	float tamanhoSky = 100;
+	int i = weather;
+	// Render the front quad
+
+	glBindTexture(GL_TEXTURE_2D, texture[4 + (i * 6)]);
+	
+	
+	glBegin(GL_QUADS);
+	glTexCoord2f(0, 0); 
+	glVertex3f(tamanhoSky, -tamanhoSky, -tamanhoSky+ 100);
+	glTexCoord2f(1, 0); 
+	glVertex3f(-tamanhoSky, -tamanhoSky, -tamanhoSky+ 100);
+	glTexCoord2f(1, 1); 
+	glVertex3f(-tamanhoSky, tamanhoSky, -tamanhoSky+ 100);
+	glTexCoord2f(0, 1); 
+	glVertex3f(tamanhoSky, tamanhoSky, -tamanhoSky+ 100);
+	glEnd();
+
+	// Render the left quad
+	
+		glBindTexture(GL_TEXTURE_2D, texture[3 + (i * 6)]);
+	
+	glBegin(GL_QUADS);
+	glTexCoord2f(1, 0); glVertex3f(tamanhoSky, -tamanhoSky, tamanhoSky+ 100);
+	glTexCoord2f(1, 1); glVertex3f(tamanhoSky, -tamanhoSky, -tamanhoSky + 100);
+	glTexCoord2f(0, 1); glVertex3f(tamanhoSky, tamanhoSky, -tamanhoSky + 100);
+	glTexCoord2f(0, 0); glVertex3f(tamanhoSky, tamanhoSky, tamanhoSky + 100);
+	glEnd();
+
+	// Render the back quad
+	
+		glBindTexture(GL_TEXTURE_2D, texture[8 + (i * 6)]);
+	
+	glBegin(GL_QUADS);
+	glTexCoord2f(1, 1); glVertex3f(-tamanhoSky, -tamanhoSky, tamanhoSky + 100);
+	glTexCoord2f(0, 1); glVertex3f(tamanhoSky, -tamanhoSky, tamanhoSky + 100);
+	glTexCoord2f(0, 0); glVertex3f(tamanhoSky, tamanhoSky, tamanhoSky + 100);
+	glTexCoord2f(1, 0); glVertex3f(-tamanhoSky, tamanhoSky, tamanhoSky + 100);
+
+	glEnd();
+
+	// Render the right quad
+	
+		glBindTexture(GL_TEXTURE_2D, texture[5 + (i * 6)]);
+	
+	glBegin(GL_QUADS);
+	glTexCoord2f(0, 1); glVertex3f(-tamanhoSky, -tamanhoSky, -tamanhoSky + 100);
+	glTexCoord2f(0, 0); glVertex3f(-tamanhoSky, -tamanhoSky, tamanhoSky + 100);
+	glTexCoord2f(1, 0); glVertex3f(-tamanhoSky, tamanhoSky, tamanhoSky + 100);
+	glTexCoord2f(1, 1); glVertex3f(-tamanhoSky, tamanhoSky, -tamanhoSky + 100);
+	glEnd();
+
+	// Render the top quad
+	
+		glBindTexture(GL_TEXTURE_2D, texture[6 + (i * 6)]);
+	
+	glBegin(GL_QUADS);
+	glTexCoord2f(0, 1); glVertex3f(-tamanhoSky, tamanhoSky, -tamanhoSky + 100);
+	glTexCoord2f(0, 0); glVertex3f(-tamanhoSky, tamanhoSky, tamanhoSky + 100);
+	glTexCoord2f(1, 0); glVertex3f(tamanhoSky, tamanhoSky, tamanhoSky + 100);
+	glTexCoord2f(1, 1); glVertex3f(tamanhoSky, tamanhoSky, -tamanhoSky + 100);
+	glEnd();
+
+	// Render the bottom quad
+
+		glBindTexture(GL_TEXTURE_2D, texture[7 + (i * 6)]);
+
+	glBegin(GL_QUADS);
+	glTexCoord2f(0, 1); glVertex3f(-tamanhoSky, -tamanhoSky, -tamanhoSky + 100);
+	glTexCoord2f(0, 0); glVertex3f(-tamanhoSky, -tamanhoSky, tamanhoSky + 100);
+	glTexCoord2f(1, 0); glVertex3f(tamanhoSky, -tamanhoSky, tamanhoSky + 100);
+	glTexCoord2f(1, 1); glVertex3f(tamanhoSky, -tamanhoSky, -tamanhoSky + 100);
+	glEnd();
+
+	// Restore enable bits and matrix
+	//glPopAttrib();
+	glPopMatrix();
+	glDisable(GL_TEXTURE_2D);
+
+
 }
 
 void desenhaEixos(){
@@ -757,17 +1169,35 @@ void display(void)
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glLoadIdentity();
+
 	setCamera();
 
-	material(slate);
-	desenhaSolo();
+	/*material(cinza);
+	desenhaSolo();*/
 
+	material(emerald);
+	printtext(50,50,"Login : "+nome);
 	
 	desenhaEixos();
 	
 	desenhaLabirinto();
  
-	printtext(100,50,"OLA");
+	if (TESTES) {
+		
+	
+	}
+	if (RAIN) {
+		material(azul);
+		drawRain();
+	}
+	else if(SNOW) {
+		material(cinza);
+		drawSnow();
+	}
+	else if(HAIL){
+		material(azul);
+		drawHail();
+	}
 
 	if(estado.eixoTranslaccao) {
 		// desenha plano de translacção
@@ -775,6 +1205,8 @@ void display(void)
 		desenhaPlanoDrag(estado.eixoTranslaccao);
 
 	}
+	skybox();
+
 
 	glFlush();
 	glutSwapBuffers();
@@ -846,11 +1278,96 @@ void keyboard(unsigned char key, int x, int y)
 				initModelo();
 				glutPostRedisplay();
 			break;   
-		case 'b':
-		case 'B':
-			estado.paredes = !estado.paredes;
+		case 'q':
+		case 'Q':
+				printf("Insira Nome de Utilizador:");
+				cin >> nome;
+				glutPostRedisplay();
+				break;
+		case 'r':
+		case 'R':
+				printf("Reloading...");
+				glutPostRedisplay();
+				break;
+		case 'y':
+		case 'Y':
+			printf("Rain...");
+			if (!RAIN && !HAIL && !SNOW) {
+				RAIN = !RAIN;
+			}
+			else {
+				RAIN = !RAIN;
+				if (SNOW) {
+					SNOW = !SNOW;
+				}
+				else if (HAIL) {
+					HAIL = !HAIL;
+				}
+			}
 			glutPostRedisplay();
 			break;
+		case 'x':
+		case 'X':
+			printf("Hail...");
+			if (!RAIN && !HAIL && !SNOW) {
+				HAIL = !HAIL;
+			}
+			else {
+				HAIL = !HAIL;
+				if (SNOW) {
+					SNOW = !SNOW;
+				}
+				else if (RAIN) {
+					RAIN = !RAIN;
+				}
+			}
+			glutPostRedisplay();
+			break;
+		case 'z':
+		case 'Z':
+			printf("Snow...");
+			if (!RAIN && !HAIL && !SNOW) {
+				SNOW = !SNOW;
+			}
+			else {
+				SNOW = !SNOW;
+				if (RAIN) {
+					RAIN = !RAIN;
+				}
+				else if (HAIL) {
+					HAIL = !HAIL;
+				}
+			}
+			glutPostRedisplay();
+			break;
+		case 'b':
+		case 'B':
+				estado.paredes = !estado.paredes;
+				glutPostRedisplay();
+				break;
+		case 'v':
+		case 'V':
+			if (weather == 2) {
+				weather = 0;
+			}
+			else {
+				weather++;
+			}
+			
+			glutPostRedisplay();
+			break;
+		case 'u':
+		case 'U':
+				if (TESTES) {
+					TESTES = !TESTES;
+				}
+				else {
+					TESTES = !TESTES;
+				}
+				
+				glutPostRedisplay();
+				break;
+
 	}
 }
 
@@ -861,6 +1378,7 @@ void Special(int key, int x, int y){
 				gravaGrafo();
 			break;
 		case GLUT_KEY_F2 :
+				//Chamar HTTP
 				leGrafo();
 				glutPostRedisplay();
 			break;	
@@ -1072,9 +1590,417 @@ void mouse(int btn, int state, int x, int y){
 	}
 }
 
+
+void static testeSom() {
+
+	ISoundEngine* engineTest = createIrrKlangDevice();
+	if (!engineTest)
+		exit(0);
+	engineTest->stopAllSounds();
+	engineTest->play2D("teste.mp3", true);
+	engineTest->drop();
+	printf("Teste de Som Concluido");
+}
+
+void static testeHttp() {
+
+	//You create the request
+	httpRequest r;
+	//Set the host,uri and headers
+	
+	r.setHost("localhost");
+	r.setUri("/Api/meteorologias");
+	r.addHeader("Connection: close");
+	
+	//Build the request
+	r.buildRequest();
+	
+	//Create the client
+	httpClient *cl = new httpClient();
+	//Send the request
+	cl->sendRequest(r);
+	//Get the Response
+	printf(r.getHost().c_str());
+	printf(r.toString().c_str());
+	printf("%s",cl->getResponse().c_str());
+	printf("Teste de HTTP Concluido");
+
+}
+
+void static getPercursoHttp() {
+
+	//You create the request
+	httpRequest r;
+
+	r.setHost("localhost");
+	r.setUri("/api/visitas");
+	r.addHeader("Connection: close");
+
+	//Build the request
+	r.buildRequest();
+	printf(r.toString().c_str());
+	//Create the client
+	httpClient *clr = new httpClient();
+	//Send the request
+
+	clr->sendRequest(r);
+	//Get the Response
+
+	string resposta = clr->getResponse().c_str();
+
+	
+
+	if (resposta.find("404 Not Found") == std::string::npos) {
+
+		unsigned first = resposta.find("{");
+		unsigned last = resposta.find_last_of("}]");
+		string novaRes = resposta.substr(first, last - first);
+		
+
+		vector<string> vectt;
+		split(novaRes, vectt, '}');
+
+		for (vector<string>::iterator it = vectt.begin(); it != vectt.end(); ++it) {
+			string op = *it;
+			replace(op.begin(), op.end(), '"', ' ');
+			replace(op.begin(), op.end(), '{', ' ');
+			replace(op.begin(), op.end(), '}', ' ');
+			replace(op.begin(), op.end(), ',', '\n');
+			cout << "----------------------\n";
+			cout << op << "\n";
+			*it = op;
+
+		}
+
+		string escolha;
+		cout << "Qual a visita pretendida?\n";
+		cin >> escolha;
+		string numP;
+
+		for (vector<string>::iterator it = vectt.begin(); it != vectt.end(); ++it) {
+			string op = *it;
+			
+			string vis = "idVisita :" + escolha;
+			if (op.find(vis) != std::string::npos) {
+				
+				first = op.find("idPercurso :");
+				last = op.find_last_of("idUser");
+				string numPercurso = op.substr(first, last - first);
+			
+
+				vector<string> vect3;
+				split(numPercurso, vect3, ':');
+				numPercurso = vect3.at(1);
+				split(numPercurso, vect3, 'i');
+				numPercurso= vect3.at(0);
+				replace(numPercurso.begin(), numPercurso.end(), 'i', ' ');
+				replace(numPercurso.begin(), numPercurso.end(), '\n', ' ');
+				numP =numPercurso;
+				
+
+			}
+
+		}
+		
+		//Set the host,uri and headers
+
+		r.setHost("localhost");
+		string ur = "/api/percursoes/" + numP;
+	
+		r.setUri(ur);
+		r.addHeader("Connection: close");
+
+		//Build the request
+		r.buildRequest();
+		printf(r.toString().c_str());
+		//Create the client
+		httpClient *cl = new httpClient();
+		//Send the request
+
+		cl->sendRequest(r);
+		//Get the Response
+
+		resposta = cl->getResponse().c_str();
+
+		if (resposta.find("404 Not Found") == std::string::npos) {
+
+
+			first = resposta.find("{");
+			last = resposta.find_last_of("}]");
+			novaRes = resposta.substr(first, last - first);
+
+
+			vector<string> vect;
+			split(novaRes, vect, '[');
+
+			string res = vect.at(0);
+			string pois = vect.at(1);
+			split(res, vect, ',');
+			string id = vect.at(0);
+			string nome = vect.at(1);
+			string descricao = vect.at(2);;
+
+
+			first = id.find(":");
+			last = id.find_last_of(",");
+			string novoID = id.substr(first, last - first);
+			replace(novoID.begin(), novoID.end(), ':', ' ');
+
+			first = nome.find(":");
+			last = nome.find_last_of(",");
+			string novoNome = nome.substr(first, last - first);
+			replace(novoNome.begin(), novoNome.end(), ':', ' ');
+			replace(novoNome.begin(), novoNome.end(), '"', ' ');
+
+			first = descricao.find(":");
+			last = descricao.find_last_of(",");
+			string novaDescricao = descricao.substr(first, last - first);
+			replace(novaDescricao.begin(), novaDescricao.end(), ':', ' ');
+
+
+			replace(pois.begin(), pois.end(), ']', ' ');
+
+			rota.id = atoi(novoID.c_str());
+			rota.descricao = novaDescricao;
+			rota.nome = novoNome;
+
+			//Set the host,uri and headers
+
+			vector<string> lista;
+			split(pois, lista, ',');
+			
+			string latitude;
+			string localID;
+			string longitude;
+			string nomeLocal;
+
+			for (vector<string>::iterator it = lista.begin(); it != lista.end(); ++it) {
+
+				r.setHost("localhost");
+				string num = *it;
+				replace(num.begin(), num.end(), ',', ' ');
+				string uri = "/api/pois/" + num;
+
+				r.setUri(uri);
+				r.addHeader("Connection: close");
+
+				//Build the request
+				r.buildRequest();
+				//Create the client
+				httpClient *cl2 = new httpClient();
+				//Send the request
+
+				cl2->sendRequest(r);
+
+				resposta = cl2->getResponse().c_str();
+
+				if (resposta.find("404 Not Found") == std::string::npos) {
+
+
+					first = resposta.find("{");
+					last = resposta.find_last_of("}]");
+					novaRes = resposta.substr(first, last - first);
+
+
+					vector<string> vect2;
+					split(novaRes, vect2, ',');
+
+					id = vect2.at(0);
+					nome = vect2.at(1);
+					descricao = vect2.at(2);
+					pois = vect2.at(3);
+					string descricao2 = vect2.at(4);
+					string duracaoVisita = vect2.at(5);
+
+
+					first = id.find(":");
+					last = id.find_last_of(",");
+					novoID = id.substr(first, last - first);
+					replace(novoID.begin(), novoID.end(), ':', ' ');
+					replace(novoID.begin(), novoID.end(), '"', ' ');
+
+					first = nome.find(":");
+					last = nome.find_last_of(",");
+					novoNome = nome.substr(first, last - first);
+					replace(novoNome.begin(), novoNome.end(), ':', ' ');
+					replace(novoNome.begin(), novoNome.end(), '"', ' ');
+
+					first = descricao.find(":");
+					last = descricao.find_last_of(",");
+					novaDescricao = descricao.substr(first, last - first);
+					replace(novaDescricao.begin(), novaDescricao.end(), ':', ' ');
+
+					first = pois.find(":");
+					last = pois.find_last_of(",");
+					string novoPois = pois.substr(first, last - first);
+					replace(novoPois.begin(), novoPois.end(), ':', ' ');
+					replace(novoPois.begin(), novoPois.end(), '"', ' ');
+
+					first = descricao2.find(":");
+					last = descricao2.find_last_of(",");
+					string novaDescricao2 = descricao2.substr(first, last - first);
+					replace(novaDescricao2.begin(), novaDescricao2.end(), ':', ' ');
+					replace(novaDescricao2.begin(), novaDescricao2.end(), '"', ' ');
+
+					first = duracaoVisita.find(":");
+					last = duracaoVisita.find_last_of(",");
+					string novaDuracao = duracaoVisita.substr(first, last - first);
+					replace(novaDuracao.begin(), novaDuracao.end(), ':', ' ');
+					replace(novaDuracao.begin(), novaDuracao.end(), '"', ' ');
+
+
+					r.setHost("localhost");
+					std::string::iterator end_pos = std::remove(novaDescricao.begin(), novaDescricao.end(), ' ');
+					novaDescricao.erase(end_pos, novaDescricao.end());
+					ur = "/api/locals/" + novaDescricao;
+				
+
+					r.setUri(ur);
+					r.addHeader("Connection: close");
+
+					//Build the request
+					r.buildRequest();
+					printf(r.toString().c_str());
+					//Create the client
+					httpClient *clLocal = new httpClient();
+					//Send the request
+
+					clLocal->sendRequest(r);
+					//Get the Response
+
+					resposta = clLocal->getResponse().c_str();
+
+					if (resposta.find("404 Not Found") == std::string::npos) {
+						
+						first = resposta.find("{");
+						last = resposta.find_last_of("}]");
+						novaRes = resposta.substr(first, last - first);
+
+
+						vector<string> vectL;
+						split(novaRes, vectL, ',');
+
+						latitude = vectL.at(0);
+						localID = vectL.at(1);
+						longitude = vectL.at(2);
+						nomeLocal = vectL.at(3);
+
+						first = latitude.find(":");
+						last = latitude.find_last_of(",");
+						string novaLatitude = latitude.substr(first, last - first);
+						replace(novaLatitude.begin(), novaLatitude.end(), ':', ' ');
+						replace(novaLatitude.begin(), novaLatitude.end(), '"', ' ');
+
+						first = localID.find(":");
+						last = localID.find_last_of(",");
+						string novoLocal = localID.substr(first, last - first);
+						replace(novoLocal.begin(), novoLocal.end(), ':', ' ');
+						replace(novoLocal.begin(), novoLocal.end(), '"', ' ');
+
+
+						first = longitude.find(":");
+						last = longitude.find_last_of(",");
+						string novaLongitude = longitude.substr(first, last - first);
+						replace(novaLongitude.begin(), novaLongitude.end(), ':', ' ');
+						replace(novaLongitude.begin(), novaLongitude.end(), '"', ' ');
+
+						first = nomeLocal.find(":");
+						last = nomeLocal.find_last_of(",");
+						string novoNomeL = nomeLocal.substr(first, last - first);
+						replace(novoNomeL.begin(), novoNomeL.end(), ':', ' ');
+						replace(novoNomeL.begin(), novoNomeL.end(), '"', ' ');
+
+					/*	cout << "\n" << novaLatitude << "\n";
+						cout<< "\n" << novoLocal << "\n";
+						cout << "\n" << novaLongitude << "\n";
+						cout << "\n" << novoNomeL << "\n";*/
+					
+						Poi a;
+						a.categoria = novoNome;
+						a.local = novoID;
+						a.id = atoi(novaDescricao.c_str());
+						a.nome = novoPois;
+						a.descricao = novaDescricao2;
+						a.duracaoVisita = atoi(novaDuracao.c_str());
+						a.nomeLocal = novoLocal;
+						a.x = stof(novaLongitude);
+						a.y = stof(novoNomeL);
+						
+
+
+						rota.pois.push_back(a);
+
+					}
+					else {
+						cout << "Pagina Nao Existe";
+					}
+
+
+					
+				}
+				else {
+					cout << "Pagina Nao Existe";
+				}
+
+			}
+
+		
+
+			cout << "\nRota :\n" << "Id: " << rota.id << "\nNome: " << rota.nome << "\nDescricao: " << rota.descricao << "\n";
+			cout << "Pois:\n";
+			for (vector<Poi>::iterator it = rota.pois.begin(); it != rota.pois.end(); ++it) {
+				cout << "Id: " << it->id << "\nNome: " << it->nome << "\nDescricao: " << it->descricao << "\nDuracao: " << it->duracaoVisita << "\nCategoria: " << it->categoria << "\nLocal: " << it->local <<"\nX: "<<it->x<<"\nY: "<<it->y<<"\nNome: "<<it->nomeLocal<<"\n" ;
+				cout << "--------------------\n";
+			}
+			
+			
+			No nosH[1];
+			nosH[0].largura = 5;
+			nosH[0].x = rota.pois.at(0).x;
+			nosH[0].y = rota.pois.at(0).y;
+			nosH[0].z = 0;
+			Arco arcosH[2];
+			int numNos = rota.pois.size();
+			leGrafoHTTP(numNos,0,nosH,arcosH);
+			
+
+		}
+		else {
+			cout << "Pagina Nao Existe";
+		}
+	}
+else {
+	cout << "Pagina Nao Existe";
+}
+	
+}
+
+void static testePrintToScreen() {
+
+	printtext(100,50,"Teste");
+
+	printf("Teste de PrintToScreen Concluido");
+}
+
+void static runTests() {
+
+	testeSom();
+	testeHttp();
+	testePrintToScreen();
+
+}
+
+void timer(int n) {
+
+	glutPostRedisplay();
+	
+	glutTimerFunc(25, timer, 0);
+}
+
+
 void main(int argc, char **argv)
 {
-
+	nome = "";
 	if (!engine)
 		exit(0);
 
@@ -1092,11 +2018,19 @@ void main(int argc, char **argv)
 	glutKeyboardFunc(keyboard);
 	glutSpecialFunc(Special);
 	glutMouseFunc(mouse);
+	glutTimerFunc(25, timer, 0);
+
+	RAIN = GL_FALSE;
+	SNOW = GL_FALSE;
+	HAIL = GL_FALSE;
 
 	myInit();
-
+	getPercursoHttp();
+	//testeHttp();
 	imprime_ajuda();
 
     glutMainLoop();
 
 }
+
+

@@ -11,7 +11,8 @@
 #pragma comment(lib, "ws2_32.lib")
 #pragma GCC diagnostic ignored "-Wwrite-strings"
 
-#define DEFAULT_PORT "80"
+//Mudar Porto confomre o Porto da API
+#define DEFAULT_PORT "18688"
 
 httpClient::httpClient()
 {
@@ -65,6 +66,7 @@ void httpClient::connectTo(std::string ip)
 		WSACleanup();
 	}
 }
+
 
 std::string httpClient::receive(httpRequest request)
 {

@@ -15,6 +15,7 @@ class httpClient
 	WSADATA wsaData;
 	SOCKET connectSocket;
 	std::string ip;
+	std::string porto;
 	std::string resp;
 	struct addrinfo *result, *ptr, hints;
 
@@ -23,7 +24,9 @@ class httpClient
 
 public:
 	httpClient();
+	void httpClient::setPorto(std::string por);
 	void sendRequest(httpRequest request);
+	std::string getPorto();
 
 	std::string getResponse();
 };

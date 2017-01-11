@@ -118,3 +118,29 @@ void leGrafo(){
 				nos[i].largura = arcos[j].largura;
 	}		
 }
+
+void leGrafoHTTP(int numNosH, int numArcosH, No nosH[], Arco arcosH[]) {
+
+	numNos = numNosH;
+
+	for (int i = 0; i < numNos; i++) {
+		nos[i].x = nosH[i].x;
+		nos[i].y = nosH[i].y;
+		nos[i].z = nosH[i].z;
+	}
+
+	numArcos = numArcosH;
+	for (int i = 0; i < numArcos; i++){
+		arcos[i].noi = arcosH[i].noi;
+	    arcos[i].nof = arcosH[i].nof;
+		arcos[i].peso = arcosH[i].peso;
+		arcos[i].largura = arcosH[i].largura;
+	}
+	// calcula a largura de cada no = maior largura dos arcos que divergem/convergem desse/nesse no	
+	for (int i = 0; i<numNos; i++) {
+		nos[i].largura = 0;
+		for (int j = 0; j<numArcos; j++)
+			if ((arcos[j].noi == i || arcos[j].nof == i) && nos[i].largura < arcos[j].largura)
+				nos[i].largura = arcos[j].largura;
+	}
+}
