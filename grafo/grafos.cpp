@@ -122,26 +122,23 @@ void leGrafo(){
 	}		
 }
 
-void leGrafoHTTP(int numNosH, int numArcosH, vector<Poi> pois, vector<Arco> arcos) {
+void leGrafoHTTP(int numNosH, int numArcosH, vector<Poi> pois, vector<Arco> arcosf) {
 
 	numNos = numNosH;
 
 	for (int i = 0; i < numNos; i++) {
 		nos[i].x = pois.at(i).x;
 		nos[i].y = pois.at(i).y;
-		nos[i].z = 0;
+		nos[i].z = rand() % 10 + 1;;
 	}
 
 	numArcos = numArcosH;
 	for (int i = 0; i < numArcos; i++){
-		cout << "\nArco : "<<i<<" \n";
-		cout<<"\nNOI: "<< arcos.at(i).noi;
-		cout << "\nNOF: " << arcos.at(i).nof;
 
-		arcos[i].noi = arcos.at(i).noi;
-	    arcos[i].nof = arcos.at(i).nof;
-		arcos[i].peso = arcos.at(i).peso;
-		arcos[i].largura = arcos.at(i).largura;
+		arcos[i].noi = arcosf.at(i).noi;
+	    arcos[i].nof = arcosf.at(i).nof;
+		arcos[i].peso = arcosf.at(i).peso;
+		arcos[i].largura = arcosf.at(i).largura;
 	}
 	// calcula a largura de cada no = maior largura dos arcos que divergem/convergem desse/nesse no	
 	for (int i = 0; i<numNos; i++) {

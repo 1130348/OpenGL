@@ -1747,7 +1747,7 @@ void static getPercursoHttp() {
 		//Set the host,uri and headers
 
 		r.setHost("localhost");
-		string ur = "/api/percursoes/3";//numP
+		string ur = "/api/percursoes/" + numP;
 	
 		r.setUri(ur);
 		r.addHeader("Connection: close");
@@ -1816,8 +1816,9 @@ void static getPercursoHttp() {
 			string longitude;
 			string nomeLocal;
 			int numP = 0;
+			int soma = 0;
 			for (vector<string>::iterator it = lista.begin(); it != lista.end(); ++it) {
-
+				soma++;
 				r.setHost("localhost");
 				string num = *it;
 				replace(num.begin(), num.end(), ',', ' ');
@@ -1962,8 +1963,8 @@ void static getPercursoHttp() {
 						a.descricao = novaDescricao2;
 						a.duracaoVisita = atoi(novaDuracao.c_str());
 						a.nomeLocal = novoLocal;
-						a.x = stof(novaLongitude)/10+ rand() % 10+ -10; 
-						a.y = stof(novoNomeL)/10 + rand() % 10 + -10;
+						a.x = 5 * soma;//stof(novaLongitude)/10+ rand() % 10+ -10; 
+							a.y = 0 * soma;//stof(novoNomeL)/10 + rand() % 10 + -10;
 
 						Arco b;
 						
@@ -1972,8 +1973,8 @@ void static getPercursoHttp() {
 							numP++;
 							b.nof = numP;
 							
-							b.largura = 1;
-							b.peso = 2;
+							b.largura = 2;
+							b.peso = 1;
 							ligacoes.push_back(b);
 						}
 						
