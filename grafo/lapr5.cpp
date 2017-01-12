@@ -114,28 +114,6 @@ typedef struct Camera{
 }Camera;
 
 
-typedef struct Poi {
-	string local;
-	int id;
-	string nome;
-	string categoria;
-	string descricao;
-	int duracaoVisita;
-	string nomeLocal;
-	float x;
-	float y;
-
-}Poi;
-
-typedef struct Percurso {
-	string nome;
-	int id;
-	string descricao;
-	vector<Poi> pois;
-
-}Percurso;
-
-
 typedef struct Estado{
 	Camera		camera;
 	int			xMouse,yMouse;
@@ -163,7 +141,7 @@ typedef struct Modelo {
 
 Estado estado;
 Modelo modelo;
-Percurso rota;
+Visita visita;
 GLuint texture[21];
 ISoundEngine* engine = createIrrKlangDevice();
 
@@ -954,7 +932,7 @@ void desenhaLabirinto(){
 		material(red_plastic);
 		for(int i=0; i<numNos; i++){
 			glPushMatrix();
-				material(preto);
+				material(emerald);
 				glTranslatef(nos[i].x,nos[i].y,nos[i].z+0.25);
 				glutSolidCube(0.5);
 			glPopMatrix();
@@ -1050,13 +1028,13 @@ void skybox() {
 	
 	glBegin(GL_QUADS);
 	glTexCoord2f(0, 0); 
-	glVertex3f(tamanhoSky, -tamanhoSky, -tamanhoSky+ 100);
+	glVertex3f(tamanhoSky, -tamanhoSky, -tamanhoSky);
 	glTexCoord2f(1, 0); 
-	glVertex3f(-tamanhoSky, -tamanhoSky, -tamanhoSky+ 100);
+	glVertex3f(-tamanhoSky, -tamanhoSky, -tamanhoSky);
 	glTexCoord2f(1, 1); 
-	glVertex3f(-tamanhoSky, tamanhoSky, -tamanhoSky+ 100);
+	glVertex3f(-tamanhoSky, tamanhoSky, -tamanhoSky);
 	glTexCoord2f(0, 1); 
-	glVertex3f(tamanhoSky, tamanhoSky, -tamanhoSky+ 100);
+	glVertex3f(tamanhoSky, tamanhoSky, -tamanhoSky);
 	glEnd();
 
 	// Render the left quad
@@ -1064,10 +1042,10 @@ void skybox() {
 		glBindTexture(GL_TEXTURE_2D, texture[3 + (i * 6)]);
 	
 	glBegin(GL_QUADS);
-	glTexCoord2f(1, 0); glVertex3f(tamanhoSky, -tamanhoSky, tamanhoSky+ 100);
-	glTexCoord2f(1, 1); glVertex3f(tamanhoSky, -tamanhoSky, -tamanhoSky + 100);
-	glTexCoord2f(0, 1); glVertex3f(tamanhoSky, tamanhoSky, -tamanhoSky + 100);
-	glTexCoord2f(0, 0); glVertex3f(tamanhoSky, tamanhoSky, tamanhoSky + 100);
+	glTexCoord2f(1, 0); glVertex3f(tamanhoSky, -tamanhoSky, tamanhoSky);
+	glTexCoord2f(1, 1); glVertex3f(tamanhoSky, -tamanhoSky, -tamanhoSky);
+	glTexCoord2f(0, 1); glVertex3f(tamanhoSky, tamanhoSky, -tamanhoSky);
+	glTexCoord2f(0, 0); glVertex3f(tamanhoSky, tamanhoSky, tamanhoSky);
 	glEnd();
 
 	// Render the back quad
@@ -1075,10 +1053,10 @@ void skybox() {
 		glBindTexture(GL_TEXTURE_2D, texture[8 + (i * 6)]);
 	
 	glBegin(GL_QUADS);
-	glTexCoord2f(1, 1); glVertex3f(-tamanhoSky, -tamanhoSky, tamanhoSky + 100);
-	glTexCoord2f(0, 1); glVertex3f(tamanhoSky, -tamanhoSky, tamanhoSky + 100);
-	glTexCoord2f(0, 0); glVertex3f(tamanhoSky, tamanhoSky, tamanhoSky + 100);
-	glTexCoord2f(1, 0); glVertex3f(-tamanhoSky, tamanhoSky, tamanhoSky + 100);
+	glTexCoord2f(1, 1); glVertex3f(-tamanhoSky, -tamanhoSky, tamanhoSky);
+	glTexCoord2f(0, 1); glVertex3f(tamanhoSky, -tamanhoSky, tamanhoSky);
+	glTexCoord2f(0, 0); glVertex3f(tamanhoSky, tamanhoSky, tamanhoSky);
+	glTexCoord2f(1, 0); glVertex3f(-tamanhoSky, tamanhoSky, tamanhoSky);
 
 	glEnd();
 
@@ -1087,10 +1065,10 @@ void skybox() {
 		glBindTexture(GL_TEXTURE_2D, texture[5 + (i * 6)]);
 	
 	glBegin(GL_QUADS);
-	glTexCoord2f(0, 1); glVertex3f(-tamanhoSky, -tamanhoSky, -tamanhoSky + 100);
-	glTexCoord2f(0, 0); glVertex3f(-tamanhoSky, -tamanhoSky, tamanhoSky + 100);
-	glTexCoord2f(1, 0); glVertex3f(-tamanhoSky, tamanhoSky, tamanhoSky + 100);
-	glTexCoord2f(1, 1); glVertex3f(-tamanhoSky, tamanhoSky, -tamanhoSky + 100);
+	glTexCoord2f(0, 1); glVertex3f(-tamanhoSky, -tamanhoSky, -tamanhoSky);
+	glTexCoord2f(0, 0); glVertex3f(-tamanhoSky, -tamanhoSky, tamanhoSky );
+	glTexCoord2f(1, 0); glVertex3f(-tamanhoSky, tamanhoSky, tamanhoSky);
+	glTexCoord2f(1, 1); glVertex3f(-tamanhoSky, tamanhoSky, -tamanhoSky);
 	glEnd();
 
 	// Render the top quad
@@ -1098,10 +1076,10 @@ void skybox() {
 		glBindTexture(GL_TEXTURE_2D, texture[6 + (i * 6)]);
 	
 	glBegin(GL_QUADS);
-	glTexCoord2f(0, 1); glVertex3f(-tamanhoSky, tamanhoSky, -tamanhoSky + 100);
-	glTexCoord2f(0, 0); glVertex3f(-tamanhoSky, tamanhoSky, tamanhoSky + 100);
-	glTexCoord2f(1, 0); glVertex3f(tamanhoSky, tamanhoSky, tamanhoSky + 100);
-	glTexCoord2f(1, 1); glVertex3f(tamanhoSky, tamanhoSky, -tamanhoSky + 100);
+	glTexCoord2f(0, 1); glVertex3f(-tamanhoSky, tamanhoSky, -tamanhoSky);
+	glTexCoord2f(0, 0); glVertex3f(-tamanhoSky, tamanhoSky, tamanhoSky);
+	glTexCoord2f(1, 0); glVertex3f(tamanhoSky, tamanhoSky, tamanhoSky);
+	glTexCoord2f(1, 1); glVertex3f(tamanhoSky, tamanhoSky, -tamanhoSky);
 	glEnd();
 
 	// Render the bottom quad
@@ -1109,10 +1087,10 @@ void skybox() {
 		glBindTexture(GL_TEXTURE_2D, texture[7 + (i * 6)]);
 
 	glBegin(GL_QUADS);
-	glTexCoord2f(0, 1); glVertex3f(-tamanhoSky, -tamanhoSky, -tamanhoSky + 100);
-	glTexCoord2f(0, 0); glVertex3f(-tamanhoSky, -tamanhoSky, tamanhoSky + 100);
-	glTexCoord2f(1, 0); glVertex3f(tamanhoSky, -tamanhoSky, tamanhoSky + 100);
-	glTexCoord2f(1, 1); glVertex3f(tamanhoSky, -tamanhoSky, -tamanhoSky + 100);
+	glTexCoord2f(0, 1); glVertex3f(-tamanhoSky, -tamanhoSky, -tamanhoSky);
+	glTexCoord2f(0, 0); glVertex3f(-tamanhoSky, -tamanhoSky, tamanhoSky);
+	glTexCoord2f(1, 0); glVertex3f(tamanhoSky, -tamanhoSky, tamanhoSky);
+	glTexCoord2f(1, 1); glVertex3f(tamanhoSky, -tamanhoSky, -tamanhoSky);
 	glEnd();
 
 	// Restore enable bits and matrix
@@ -1172,8 +1150,8 @@ void display(void)
 
 	setCamera();
 
-	/*material(cinza);
-	desenhaSolo();*/
+	material(cinza);
+	desenhaSolo();
 
 	material(emerald);
 	printtext(50,50,"Login : "+nome);
@@ -1204,6 +1182,19 @@ void display(void)
 		cout << "Translate... " << estado.eixoTranslaccao << endl; 
 		desenhaPlanoDrag(estado.eixoTranslaccao);
 
+	}
+	vector<string> vecHoras;
+	split(visita.horaInicio,vecHoras,':');
+	int hora = atoi(vecHoras.at(0).c_str());
+	
+	if(hora>14 && hora<18) {
+		weather = 1;
+	}
+	else if (hora>8 && hora<14) {
+		weather = 0;
+	}
+	else {
+		weather = 2;
 	}
 	skybox();
 
@@ -1629,6 +1620,8 @@ void static testeHttp() {
 
 void static getPercursoHttp() {
 
+	vector<Arco> ligacoes;
+
 	//You create the request
 	httpRequest r;
 
@@ -1650,7 +1643,7 @@ void static getPercursoHttp() {
 
 	
 
-	if (resposta.find("404 Not Found") == std::string::npos) {
+	if (resposta.find("Visita") != std::string::npos) {
 
 		unsigned first = resposta.find("{");
 		unsigned last = resposta.find_last_of("}]");
@@ -1682,20 +1675,69 @@ void static getPercursoHttp() {
 			
 			string vis = "idVisita :" + escolha;
 			if (op.find(vis) != std::string::npos) {
-				
-				first = op.find("idPercurso :");
-				last = op.find_last_of("idUser");
-				string numPercurso = op.substr(first, last - first);
+		
 			
 
-				vector<string> vect3;
-				split(numPercurso, vect3, ':');
-				numPercurso = vect3.at(1);
-				split(numPercurso, vect3, 'i');
-				numPercurso= vect3.at(0);
-				replace(numPercurso.begin(), numPercurso.end(), 'i', ' ');
-				replace(numPercurso.begin(), numPercurso.end(), '\n', ' ');
-				numP =numPercurso;
+				vector<string> vectV;
+				split(op, vectV, '\n');
+				
+				string dataVisita=vectV.at(1);
+				string descricaoVisita = vectV.at(2);
+				string horaInicioVisita = vectV.at(3);
+				string idPercurso= vectV.at(4);
+				string idUser= vectV.at(5);
+				string idVisita= vectV.at(6);
+
+
+				first = dataVisita.find(":");
+				last = dataVisita.find_last_of(",");
+				string novaDataV = dataVisita.substr(first, last - first);
+				replace(novaDataV.begin(), novaDataV.end(), '"', ' ');
+				replace(novaDataV.begin(), novaDataV.end(), ':', ' ');
+				visita.visitaId = atoi(novaDataV.c_str());
+
+
+				first = descricaoVisita.find(":");
+				last = descricaoVisita.find_last_of(",");
+				string novaDescricaoV = descricaoVisita.substr(first, last - first);
+				replace(novaDescricaoV.begin(), novaDescricaoV.end(), '"', ' ');
+				replace(novaDescricaoV.begin(), novaDescricaoV.end(), ':', ' ');
+				visita.data = novaDescricaoV;
+
+				first = horaInicioVisita.find(":");
+				last = horaInicioVisita.find_last_of(",");
+				string novoHorario = horaInicioVisita.substr(first, last - first);
+				replace(novoHorario.begin(), novoHorario.end(), '"', ' ');
+				replace(novoHorario.begin(), novoHorario.end(), ':', ' ');
+				visita.descricao= novoHorario;
+
+
+				first = idPercurso.find(":");
+				last = idPercurso.find_last_of(",");
+				string novoIDPercurso = idPercurso.substr(first, last - first);
+				replace(novoIDPercurso.begin(), novoIDPercurso.end(), '"', ' ');
+				novoIDPercurso.erase(0,1);
+				//replace(novoIDPercurso.begin(), novoIDPercurso.end(), ':', ' ');
+				visita.horaInicio=novoIDPercurso;
+
+
+				first = idUser.find(":");
+				last = idUser.find_last_of(",");
+				string novoIDUser = idUser.substr(first, last - first);
+				replace(novoIDUser.begin(), novoIDUser.end(), '"', ' ');
+				replace(novoIDUser.begin(), novoIDUser.end(), ':', ' ');
+				replace(novoIDUser.begin(), novoIDUser.end(), '\n', ' ');
+				visita.percursoId=atoi(novoIDUser.c_str());
+				novoIDUser.erase(0,1);
+				numP = novoIDUser;
+
+
+				first = idVisita.find(":");
+				last = idVisita.find_last_of(",");
+				string novoIDVisita = idVisita.substr(first, last - first);
+				replace(novoIDVisita.begin(), novoIDVisita.end(), '"', ' ');
+				replace(novoIDVisita.begin(), novoIDVisita.end(), ':', ' ');
+				visita.UserId = atoi(novoIDVisita.c_str());
 				
 
 			}
@@ -1705,7 +1747,7 @@ void static getPercursoHttp() {
 		//Set the host,uri and headers
 
 		r.setHost("localhost");
-		string ur = "/api/percursoes/" + numP;
+		string ur = "/api/percursoes/3";//numP
 	
 		r.setUri(ur);
 		r.addHeader("Connection: close");
@@ -1759,10 +1801,10 @@ void static getPercursoHttp() {
 
 
 			replace(pois.begin(), pois.end(), ']', ' ');
-
-			rota.id = atoi(novoID.c_str());
-			rota.descricao = novaDescricao;
-			rota.nome = novoNome;
+			
+			visita.rota.id = atoi(novoID.c_str());
+			visita.rota.descricao = novaDescricao;
+			visita.rota.nome = novoNome;
 
 			//Set the host,uri and headers
 
@@ -1773,7 +1815,7 @@ void static getPercursoHttp() {
 			string localID;
 			string longitude;
 			string nomeLocal;
-
+			int numP = 0;
 			for (vector<string>::iterator it = lista.begin(); it != lista.end(); ++it) {
 
 				r.setHost("localhost");
@@ -1850,9 +1892,11 @@ void static getPercursoHttp() {
 
 
 					r.setHost("localhost");
+				
 					std::string::iterator end_pos = std::remove(novaDescricao.begin(), novaDescricao.end(), ' ');
 					novaDescricao.erase(end_pos, novaDescricao.end());
-					ur = "/api/locals/" + novaDescricao;
+					novoID.erase(0, 1);
+					ur = "/api/locals/" + novoID;
 				
 
 					r.setUri(ur);
@@ -1909,30 +1953,39 @@ void static getPercursoHttp() {
 						string novoNomeL = nomeLocal.substr(first, last - first);
 						replace(novoNomeL.begin(), novoNomeL.end(), ':', ' ');
 						replace(novoNomeL.begin(), novoNomeL.end(), '"', ' ');
-
-					/*	cout << "\n" << novaLatitude << "\n";
-						cout<< "\n" << novoLocal << "\n";
-						cout << "\n" << novaLongitude << "\n";
-						cout << "\n" << novoNomeL << "\n";*/
 					
 						Poi a;
 						a.categoria = novoNome;
-						a.local = novoID;
+						a.localId = novoID;
 						a.id = atoi(novaDescricao.c_str());
 						a.nome = novoPois;
 						a.descricao = novaDescricao2;
 						a.duracaoVisita = atoi(novaDuracao.c_str());
 						a.nomeLocal = novoLocal;
-						a.x = stof(novaLongitude);
-						a.y = stof(novoNomeL);
+						a.x = stof(novaLongitude)/10+ rand() % 10+ -10; 
+						a.y = stof(novoNomeL)/10 + rand() % 10 + -10;
+
+						Arco b;
+						
+						if (numP<lista.size()) {
+							b.noi = numP;
+							numP++;
+							b.nof = numP;
+							
+							b.largura = 1;
+							b.peso = 2;
+							ligacoes.push_back(b);
+						}
+						
 						
 
 
-						rota.pois.push_back(a);
+						visita.rota.pois.push_back(a);
 
 					}
 					else {
 						cout << "Pagina Nao Existe";
+						leGrafo();
 					}
 
 
@@ -1940,28 +1993,26 @@ void static getPercursoHttp() {
 				}
 				else {
 					cout << "Pagina Nao Existe";
+					leGrafo();
 				}
 
 			}
 
 		
-
-			cout << "\nRota :\n" << "Id: " << rota.id << "\nNome: " << rota.nome << "\nDescricao: " << rota.descricao << "\n";
+			cout << "\nVisita: " << visita.descricao << "Data: " << visita.data << "Horario: " << visita.horaInicio << "ID Percurso: " << visita.percursoId << "\nID User: " << visita.UserId << "\nId Visita: " << visita.visitaId << "\n";
+			cout << "\nRota :\n" << "Id: " << visita.rota.id << "\nNome: " << visita.rota.nome << "\nDescricao: " << visita.rota.descricao << "\n";
 			cout << "Pois:\n";
-			for (vector<Poi>::iterator it = rota.pois.begin(); it != rota.pois.end(); ++it) {
-				cout << "Id: " << it->id << "\nNome: " << it->nome << "\nDescricao: " << it->descricao << "\nDuracao: " << it->duracaoVisita << "\nCategoria: " << it->categoria << "\nLocal: " << it->local <<"\nX: "<<it->x<<"\nY: "<<it->y<<"\nNome: "<<it->nomeLocal<<"\n" ;
+			for (vector<Poi>::iterator it = visita.rota.pois.begin(); it != visita.rota.pois.end(); ++it) {
+				cout << "Id: " << it->id << "\nNome: " << it->nome << "\nDescricao: " << it->descricao << "\nDuracao: " << it->duracaoVisita << "\nCategoria: " << it->categoria << "\nLocalID: " << it->localId <<"\nX: "<<it->x<<"\nY: "<<it->y<<"\nNome: "<<it->nomeLocal<<"\n" ;
 				cout << "--------------------\n";
 			}
 			
 			
-			No nosH[1];
-			nosH[0].largura = 5;
-			nosH[0].x = rota.pois.at(0).x;
-			nosH[0].y = rota.pois.at(0).y;
-			nosH[0].z = 0;
-			Arco arcosH[2];
-			int numNos = rota.pois.size();
-			leGrafoHTTP(numNos,0,nosH,arcosH);
+			
+			int numArcos=visita.rota.pois.size()-1;
+			int numNos = visita.rota.pois.size();
+			leGrafoHTTP(numNos,numArcos,visita.rota.pois,ligacoes);
+			//leGrafo();
 			
 
 		}

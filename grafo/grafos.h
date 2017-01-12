@@ -8,9 +8,44 @@
 #define ESTE_OESTE	1
 #define PLANO		2
 
+#include <vector>
+
+using namespace std;
+
 typedef struct No{
 	float x,y,z,largura;
 }No;
+
+typedef struct Poi {
+	string localId;
+	int id;
+	string nome;
+	string categoria;
+	string descricao;
+	int duracaoVisita;
+	string nomeLocal;
+	float x;
+	float y;
+
+}Poi;
+
+typedef struct Percurso {
+	string nome;
+	int id;
+	string descricao;
+	vector<Poi> pois;
+
+}Percurso;
+
+typedef struct Visita {
+	string data;
+	int UserId;
+	int visitaId;
+	int percursoId;
+	string horaInicio;
+	string descricao;
+	Percurso rota;
+}Visita;
 
 typedef struct Arco{
 	int noi,nof;
@@ -35,6 +70,6 @@ Arco criaArco(int, int, float, float);
 
 void gravaGrafo();
 void leGrafo();
-void leGrafoHTTP(int , int, No[], Arco[]);
+void leGrafoHTTP(int , int, vector<Poi>, vector<Arco>);
 
 #endif
