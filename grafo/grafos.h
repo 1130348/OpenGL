@@ -13,7 +13,7 @@
 using namespace std;
 
 typedef struct No{
-	float x,y,z,largura;
+	float x,y,z,largura, idPOI;
 }No;
 
 typedef struct Poi {

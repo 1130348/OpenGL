@@ -112,6 +112,10 @@ void leGrafo(){
 		myfile >> arcos[i].noi >> arcos[i].nof >> arcos[i].peso >> arcos[i].largura;
 		cout << "\nArcos :" << i << "\nNoi: " << arcos[i].noi << "\nNof: " << arcos[i].nof;
 	}
+	for (int i = 0; i < numNos; i++)
+	{
+		myfile >> nos[i].idPOI;
+	}
 	myfile.close();
 	// calcula a largura de cada no = maior largura dos arcos que divergem/convergem desse/nesse no	
 	for(int i=0; i<numNos;i++){

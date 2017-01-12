@@ -15,7 +15,15 @@
 #include "grafos.h"
 #include "httpClient.h"
 #include "httpRequest.h"
+#include "mathlib.h"
+#include "studio.h"
+#include "mdlviewer.h"
+#include "Model_3DS.h"
 #include "irrKlang-1.5.0\include\irrKlang.h"
+#include <gl\gl.h>	
+
+#pragma comment (lib, "glaux.lib")    /* link with Win32 GLAUX lib */
+#pragma comment( user, "Compiled on " __DATE__ " at " __TIME__ ) 
 
 using namespace std;
 using namespace irrklang;
@@ -46,6 +54,15 @@ using namespace irrklang;
 #define MAX_PARTICLES 5000
 #define WCX		640
 #define WCY		480
+
+#define NUM_JANELAS               2
+#define JANELA_TOP                0
+#define JANELA_NAVIGATE           1
+#define SCALE_MODEL				  0.1
+#define	OBJECTO_ALTURA			  1.5
+#define OBJECTO_VELOCIDADE		  0.04
+#define OBJECTO_RAIO			  0.08
+#define OBJECTO_ROTACAO			  1
 
 #define graus(X) (double)((X)*180/M_PI)
 #define rad(X)   (double)((X)*M_PI/180)
@@ -113,16 +130,33 @@ typedef struct Camera{
 
 }Camera;
 
+typedef struct teclas_t {
+	GLboolean   up, down, left, right;
+}teclas_t;
+
+typedef struct pos_t {
+	GLfloat    x, y, z;
+}pos_t;
+
+typedef struct objecto_t {
+	pos_t    pos;
+	GLfloat  dir;
+	GLfloat  vel;
+}objecto_t;
 
 typedef struct Estado{
 	Camera		camera;
 	int			xMouse,yMouse;
 	GLboolean	light;
 	GLboolean	apresentaNormais;
+	GLint       mainWindow;
+	GLint		topSubwindow;
 	GLint		lightViewer;
 	GLint		eixoTranslaccao;
-	GLfloat	eixo[3];
+	GLfloat		eixo[3];
 	GLboolean	paredes;
+	GLint       timer;
+	teclas_t    teclas;
 }Estado;
 
 typedef struct Modelo {
@@ -137,12 +171,17 @@ typedef struct Modelo {
 
 	GLfloat escala;
 	GLUquadric *quad;
+
+	StudioModel modelo[NUM_JANELAS];
+	objecto_t  objeto;
 }Modelo;
 
 Estado estado;
 Modelo modelo;
+string nomePOI = "";
 Visita visita;
 GLuint texture[21];
+int nosVisitados[30];
 ISoundEngine* engine = createIrrKlangDevice();
 
 GLboolean TESTES;
@@ -151,6 +190,26 @@ GLboolean RAIN;
 GLboolean SNOW;
 GLboolean HAIL;
 int weather;
+
+Model_3DS modeloDragao[2];
+Model_3DS modeloCasaMusica[2];
+Model_3DS modeloClerigos[2];
+Model_3DS modeloSBento[2];
+Model_3DS modeloSePorto[2];
+Model_3DS modeloPBolsa[2];
+Model_3DS modeloSerralves[2];
+Model_3DS modeloQueijo[2];
+Model_3DS modeloSFrancisco[2];
+Model_3DS modeloColiseu[2];
+Model_3DS modeloPCristal[2];
+Model_3DS modeloInfante[2];
+Model_3DS modeloAlfandega[2];
+Model_3DS modeloRivoli[2];
+Model_3DS modeloBoavista[2];
+Model_3DS modeloFerreiraB[2];
+Model_3DS modeloJardBot[2];
+Model_3DS modeloSealife[2];
+Model_3DS modeloLello[2];
 
 
 float slowdown = 2.0;
@@ -265,12 +324,17 @@ void initModelo(){
 	modelo.g_pos_luz2[1]= -15.0;
 	modelo.g_pos_luz2[2]= 5.0;
 	modelo.g_pos_luz2[3]= 0.0;
+
+	modelo.objeto.pos.x = nos[1].x * 5;
+	modelo.objeto.pos.y = nos[1].y * 5;
+	modelo.objeto.pos.z = (nos[1].z + OBJECTO_ALTURA * 0.5) * 5;
+	modelo.objeto.dir = 0;
+	modelo.objeto.vel = OBJECTO_VELOCIDADE;
 }
 
 void FreeTexture(GLuint texture) {
 	glDeleteTextures(21, &texture);
 }
-
 
 void loadTexture(GLuint texture, const char* filename)
 {
@@ -288,11 +352,8 @@ void loadTexture(GLuint texture, const char* filename)
 	gluBuild2DMipmaps(GL_TEXTURE_2D, 3, image.sizeX, image.sizeY, GL_RGB, GL_UNSIGNED_BYTE, image.data);
 }
 
-
-void myInit()
+void myInit(int janela)
 {
-	
-
 	GLfloat LuzAmbiente[]={0.5,0.5,0.5, 0.0};
 
 	glClearColor (0.0, 0.0, 0.0, 0.0);
@@ -302,6 +363,12 @@ void myInit()
 	glEnable(GL_DEPTH_TEST); /* enable z buffer */
 	glEnable(GL_NORMALIZE);
 
+	glShadeModel(GL_SMOOTH);
+	glEnable(GL_POINT_SMOOTH);
+	glEnable(GL_LINE_SMOOTH);
+	glEnable(GL_POLYGON_SMOOTH);
+	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_NORMALIZE);
 	glDepthFunc(GL_LESS);
 
 	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, LuzAmbiente); 
@@ -336,6 +403,45 @@ void myInit()
 	loadTexture(texture[19], NOME_TEXTURA_SKYBOX_NIGHT_RT);
 	loadTexture(texture[20], NOME_TEXTURA_SKYBOX_NIGHT_UP);
 
+	modeloDragao[janela].Load("Modelos/Dragao/Dragao.3ds");
+	modeloDragao[janela].lit = true;
+	//modeloCasaMusica[janela].Load("Modelos/CasaMusica/CasaMusica.3ds");
+	//modeloCasaMusica[janela].lit = true;
+	//modeloClerigos[janela].Load("Modelos/clérigos/clérigos.3ds");
+	//modeloClerigos[janela].lit = true;
+	//modeloSBento[janela].Load("Modelos/Sbento/Sbento.3ds");
+	//modeloSBento[janela].lit = true;
+	//modeloSePorto[janela].Load("Modelos/SePorto/SePorto.3ds");
+	//modeloSePorto[janela].lit = true;
+	//modeloPBolsa[janela].Load("Modelos/Pbolsa/Pbolsa.3ds");
+	//modeloPBolsa[janela].lit = true;
+	//modeloSerralves[janela].Load("Modelos/Serralves/Serralves.3ds");
+	//modeloSerralves[janela].lit = true;
+	//modeloQueijo[janela].Load("Modelos/CQueijo/CQueijo.3ds"); 
+	//modeloQueijo[janela].lit = true;
+	//modeloSFrancisco[janela].Load("Modelos/SFrancisco/SFrancisco.3ds"); 
+	//modeloSFrancisco[janela].lit = true;
+	//modeloColiseu[janela].Load("Modelos/Coliseu/Coliseu.3ds"); 
+	//modeloColiseu[janela].lit = true;
+	//modeloPCristal[janela].Load("Modelos/PCristal/PCristal.3ds"); 
+	//modeloPCristal[janela].lit = true;
+	//modeloInfante[janela].Load("Modelos/Infante/Infante.3ds"); 
+	//modeloInfante[janela].lit = true;
+	//modeloAlfandega[janela].Load("Modelos/Alfandega/Alfandega.3ds"); 
+	//modeloAlfandega[janela].lit = true;
+	//modeloRivoli[janela].Load("Modelos/Rivoli/Rivoli.3ds"); 
+	//modeloRivoli[janela].lit = true;
+	//modeloBoavista[janela].Load("Modelos/RotBoavista/RotBoavista.3ds"); 
+	//modeloBoavista[janela].lit = true;
+	//modeloFerreiraB[janela].Load("Modelos/Mercado/Mercado.3ds"); 
+	//modeloFerreiraB[janela].lit = true;
+	//modeloJardBot[janela].Load("Modelos/jardBot/jardBot.3ds"); 
+	//modeloJardBot[janela].lit = true;
+	//modeloSealife[janela].Load("Modelos/sealife/sealife.3ds"); 
+	//modeloSealife[janela].lit = true;
+	//modeloLello[janela].Load("Modelos/Lello/Lello.3ds"); 
+	//modeloLello[janela].lit = true;
+
 	int x, z;
 
 	for (z = 0; z < 21; z++) {
@@ -363,11 +469,12 @@ void myInit()
 	gluQuadricNormals(modelo.quad, GLU_OUTSIDE);
 
 	//Chamar HTTP
-	//leGrafo();
+	leGrafo();
 }
 
 // For Hail
 void drawHail() {
+	glPushMatrix();
 	float x, y, z;
 
 	for (loop = 0; loop < MAX_PARTICLES; loop = loop + 2) {
@@ -428,10 +535,12 @@ void drawHail() {
 			}
 		}
 	}
+	glPopMatrix();
 }
 
 // For Snow
 void drawSnow() {
+	glPushMatrix();
 	float x, y, z;
 	for (loop = 0; loop < MAX_PARTICLES; loop = loop + 2) {
 		if (par_sys[loop].alive == true) {
@@ -471,9 +580,11 @@ void drawSnow() {
 			}
 		}
 	}
+	glPopMatrix();
 }
 
 void drawRain() {
+	glPushMatrix();
 	float x, y, z;
 	for (loop = 0; loop < MAX_PARTICLES; loop = loop + 2) {
 		if (par_sys[loop].alive == true) {
@@ -505,6 +616,7 @@ void drawRain() {
 			}
 		}
 	}
+	glPopMatrix();
 }
 
 void imprime_ajuda(void)
@@ -563,21 +675,21 @@ void putLights(GLfloat* diffuse)
 	glLightfv(GL_LIGHT1, GL_POSITION, modelo.g_pos_luz2);
 
 	/* desenhar luz */
-	//material(red_plastic);
-	//glPushMatrix();
-	//	glTranslatef(modelo.g_pos_luz1[0], modelo.g_pos_luz1[1], modelo.g_pos_luz1[2]);
-	//	glDisable(GL_LIGHTING);
-	//	glColor3f(1.0, 1.0, 1.0);
-	//	glutSolidCube(0.1);
-	//	glEnable(GL_LIGHTING);
-	//glPopMatrix();
-	//glPushMatrix();
-	//	glTranslatef(modelo.g_pos_luz2[0], modelo.g_pos_luz2[1], modelo.g_pos_luz2[2]);
-	//	glDisable(GL_LIGHTING);
-	//	glColor3f(1.0, 1.0, 1.0);
-	//	glutSolidCube(0.1);
-	//	glEnable(GL_LIGHTING);
-	//glPopMatrix();
+	material(red_plastic);
+	glPushMatrix();
+		glTranslatef(modelo.g_pos_luz1[0], modelo.g_pos_luz1[1], modelo.g_pos_luz1[2]);
+		glDisable(GL_LIGHTING);
+		glColor3f(1.0, 1.0, 1.0);
+		glutSolidCube(0.1);
+		glEnable(GL_LIGHTING);
+	glPopMatrix();
+	glPushMatrix();
+		glTranslatef(modelo.g_pos_luz2[0], modelo.g_pos_luz2[1], modelo.g_pos_luz2[2]);
+		glDisable(GL_LIGHTING);
+		glColor3f(1.0, 1.0, 1.0);
+		glutSolidCube(0.1);
+		glEnable(GL_LIGHTING);
+	glPopMatrix();
 
 	glEnable(GL_LIGHT0);
 	glEnable(GL_LIGHT1);
@@ -670,7 +782,7 @@ void desenhaParede(GLfloat xi, GLfloat yi, GLfloat zi, GLfloat xf, GLfloat yf, G
 	length=VectorNormalize(cross);
 	//printf("Normal x=%lf y=%lf z=%lf length=%lf\n",cross[0],cross[1],cross[2]);
 
-	material(emerald);
+	material(cinza);
 	glBegin(GL_QUADS);
 		glNormal3dv(cross);
 		glTexCoord2f(1, 1);
@@ -739,7 +851,7 @@ void desenhaChao(GLfloat xi, GLfloat yi, GLfloat zi, GLfloat xf, GLfloat yf, GLf
 				length=VectorNormalize(cross);
 				//printf("Normal x=%lf y=%lf z=%lf length=%lf\n",cross[0],cross[1],cross[2]);
 
-				material(red_plastic);
+				material(cinza);
 				glBegin(GL_QUADS);
 					glNormal3dv(cross);
 					glTexCoord2f(0, 0.1);
@@ -765,7 +877,7 @@ void desenhaChao(GLfloat xi, GLfloat yi, GLfloat zi, GLfloat xf, GLfloat yf, GLf
 				//printf("cross x=%lf y=%lf z=%lf",cross[0],cross[1],cross[2]);
 				length=VectorNormalize(cross);
 				//printf("Normal x=%lf y=%lf z=%lf length=%lf\n",cross[0],cross[1],cross[2]);
-				material(red_plastic);
+				material(cinza);
 				glBegin(GL_QUADS);
 					glNormal3dv(cross);
 					glTexCoord2f(0, 0.1);
@@ -789,7 +901,7 @@ void desenhaChao(GLfloat xi, GLfloat yi, GLfloat zi, GLfloat xf, GLfloat yf, GLf
 				cross[0]=0;
 				cross[1]=0;
 				cross[2]=1;
-				material(azul);
+				material(cinza);
 				glBegin(GL_QUADS);
 					glNormal3f(0,0,1);
 					glTexCoord2f(0, 1);
@@ -884,7 +996,6 @@ void desenhaNo(int no){
 	}
 }
 
-
 void desenhaArco(Arco arco){
 	No *noi,*nof;
 
@@ -925,18 +1036,98 @@ void desenhaArco(Arco arco){
 	}
 }
 
-void desenhaLabirinto(){
+void desenhaModelo(int i, int POI, int janela) {
+	glPushMatrix();
+	glTranslatef(nos[i].x, nos[i].y, nos[i].z);
+	glRotatef(90, 1, 0, 0);
+	glScalef(nos[i].largura / 15, nos[i].largura / 15, nos[i].largura / 15);
+	material(cinza);
+	switch (POI) {
+	case(1): //Estádio do Dragão			
+		modeloDragao[janela].Draw();
+		break;
+	case(2): //Casa da musica		
+		modeloCasaMusica[janela].Draw();
+		break;
+	case(3): //Torre dos clérigos		
+		modeloClerigos[janela].Draw();
+		break;
+	case(4): //Sao bento		
+		modeloSBento[janela].Draw();
+		break;
+	case(5): //Sé do Porto		
+		modeloSePorto[janela].Draw();
+		break;
+	case(6): //Palácio da Bolsa		
+		modeloPBolsa[janela].Draw();
+		break;
+	case(7): //Serralves
+		modeloSerralves[janela].Draw();
+		break;
+	case(8): //Queijo
+		modeloQueijo[janela].Draw();
+		break;
+	case(9): //S Francisco
+		modeloSFrancisco[janela].Draw();
+		break;
+	case(10): //Coliseu
+		modeloColiseu[janela].Draw();
+		break;
+	case(11): //Palacio Cristal
+		modeloPCristal[janela].Draw();
+		break;
+	case(12): //Infante
+		modeloInfante[janela].Draw();
+		break;
+	case(13): //Alfandega
+		modeloAlfandega[janela].Draw();
+		break;
+	case(14): //Rivoli
+		modeloRivoli[janela].Draw();
+		break;
+	case(15): //Rotunda Boavista
+		modeloBoavista[janela].Draw();
+		break;
+	case(16): //Mercado
+		modeloFerreiraB[janela].Draw();
+		break;
+	case(17): //Jardim Botanico
+		modeloJardBot[janela].Draw();
+		break;
+	case(18): //Sealife
+		modeloSealife[janela].Draw();
+		break;
+	case(19): //Lello
+		modeloLello[janela].Draw();
+		break;
+	}
+	glPopMatrix();
+}
+
+void desenhaLabirinto(int janela){
 	glPushMatrix();
 		glTranslatef(0,0,0.05);
 		glScalef(5,5,5);
 		material(red_plastic);
 		for(int i=0; i<numNos; i++){
 			glPushMatrix();
+			if (nosVisitados[i] == 1)
+			{
 				material(emerald);
-				glTranslatef(nos[i].x,nos[i].y,nos[i].z+0.25);
+				glTranslatef(nos[i].x, nos[i].y, nos[i].z + 3);
 				glutSolidCube(0.5);
+			}
+			else {
+				material(preto);
+				glTranslatef(nos[i].x, nos[i].y, nos[i].z + 3);
+				glutSolidCube(0.5);
+			}
 			glPopMatrix();
 			desenhaNo(i);
+			if (nos[i].idPOI != 0)
+			{
+				desenhaModelo(i, nos[i].idPOI, janela);
+			}
 		}
 		material(emerald);
 		for(int i=0; i<numArcos; i++)
@@ -955,8 +1146,6 @@ void desenhaEixo(){
 		gluCylinder(modelo.quad,2,0,5,16,15);
 	glPopMatrix();
 }
-
-
 
 #define EIXO_X		1
 #define EIXO_Y		2
@@ -996,8 +1185,6 @@ void desenhaPlanoDrag(int eixo){
 }
 
 void skybox() {
-
-
 	// Store the current matrix
 	glPushMatrix();
 	
@@ -1102,7 +1289,6 @@ void skybox() {
 }
 
 void desenhaEixos(){
-
 	glPushMatrix();
 		glTranslated(estado.eixo[0],estado.eixo[1],estado.eixo[2]);
 		material(emerald);
@@ -1141,25 +1327,104 @@ void setCamera(){
 	}
 }
 
-void display(void)
+void setCameraUp() {
+	gluLookAt(0, -40, 90, estado.camera.center[0], -30, estado.camera.center[2], 0, 0, 1);
+	putLights((GLfloat*)white_light);
+}
+
+void displayTopSubwindow()
 {
-
-
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glLoadIdentity();
+	setCameraUp();
 
+	glPushAttrib(GL_ALL_ATTRIB_BITS);
+	glPushMatrix();
+	glTranslatef(modelo.objeto.pos.x, modelo.objeto.pos.y, modelo.objeto.pos.z);
+	glRotatef(graus(modelo.objeto.dir), 0, 0, 1);
+	glScalef(SCALE_MODEL, SCALE_MODEL, SCALE_MODEL);
+	glEnable(GL_COLOR_MATERIAL);
+	glEnable(GL_TEXTURE_2D);
+	mdlviewer_display(modelo.modelo[JANELA_TOP]);
+	glPopMatrix();
+	glPopAttrib();
+
+
+	material(slate);
+	desenhaSolo();
+	desenhaLabirinto(1);
+
+	if (estado.eixoTranslaccao) {
+		// desenha plano de translacção
+		cout << "Translate... " << estado.eixoTranslaccao << endl;
+		desenhaPlanoDrag(estado.eixoTranslaccao);
+
+	}
+
+	glFlush();
+	glutSwapBuffers();
+}
+
+void redisplayAll(void)
+{
+	glutSetWindow(estado.mainWindow);
+	glutPostRedisplay();
+	glutSetWindow(estado.topSubwindow);
+	glutPostRedisplay();
+}
+
+void display(void)
+{
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glLoadIdentity();
 	setCamera();
+
+	glPushAttrib(GL_ALL_ATTRIB_BITS);
+		glPushMatrix();
+			glTranslatef(modelo.objeto.pos.x, modelo.objeto.pos.y, modelo.objeto.pos.z);
+			glRotatef(graus(modelo.objeto.dir), 0, 0, 1);
+			glScalef(SCALE_MODEL, SCALE_MODEL, SCALE_MODEL);
+			glEnable(GL_COLOR_MATERIAL);
+			glEnable(GL_TEXTURE_2D);
+			mdlviewer_display(modelo.modelo[JANELA_NAVIGATE]);
+		glPopMatrix();
+	glPopAttrib();
 
 	material(cinza);
 	desenhaSolo();
-
 	material(emerald);
 	printtext(50,50,"Login : "+nome);
 	
 	desenhaEixos();
 	
-	desenhaLabirinto();
+	desenhaLabirinto(0);
+
+	material(red_plastic);
+	printtext(100, 50, nomePOI);
  
+	char x[15];
+	snprintf(x, 10, "%f", modelo.objeto.pos.x);
+	char xA[15] = "X= ";
+	strcat(xA, x);
+	material(red_plastic);
+	printtext(400, 50, xA);
+
+	char y[15];
+	snprintf(y, 10, "%f", modelo.objeto.pos.y);
+	char yA[15] = "Y= ";
+	strcat(yA, y);
+	material(red_plastic);
+	printtext(400, 30, yA);
+
+	char z[15];
+	snprintf(z, 10, "%f", modelo.objeto.pos.z);
+	char zA[15] = "Z= ";
+	strcat(zA, z);
+	material(red_plastic);
+	printtext(400, 10, zA);
+
 	if (TESTES) {
 		
 	
@@ -1203,8 +1468,6 @@ void display(void)
 	glutSwapBuffers();
 
 }
-
-
 
 void keyboard(unsigned char key, int x, int y)
 {
@@ -1392,16 +1655,42 @@ void Special(int key, int x, int y){
 				addArco(criaArco(4,6,1,1));  // 4 - 6
 				glutPostRedisplay();
 			break;	
-		case GLUT_KEY_UP:
+		case GLUT_KEY_PAGE_UP:
 				estado.camera.dist-=1;
 				glutPostRedisplay();
 			break;
-		case GLUT_KEY_DOWN:
+		case GLUT_KEY_PAGE_DOWN:
 				estado.camera.dist+=1;
 				glutPostRedisplay();
-			break;	}
+			break;	
+		case GLUT_KEY_UP:
+			estado.teclas.up = GL_TRUE;
+			break;
+		case GLUT_KEY_DOWN:
+			estado.teclas.down = GL_TRUE;
+			break;
+		case GLUT_KEY_LEFT:
+			estado.teclas.left = GL_TRUE;
+			break;
+		case GLUT_KEY_RIGHT:
+			estado.teclas.right = GL_TRUE;
+			break;
+	}
 }
 
+void SpecialKeyUp(int key, int x, int y)
+{
+	switch (key) {
+	case GLUT_KEY_UP: estado.teclas.up = GL_FALSE;
+		break;
+	case GLUT_KEY_DOWN: estado.teclas.down = GL_FALSE;
+		break;
+	case GLUT_KEY_LEFT: estado.teclas.left = GL_FALSE;
+		break;
+	case GLUT_KEY_RIGHT: estado.teclas.right = GL_FALSE;
+		break;
+	}
+}
 
 void setProjection(int x, int y, GLboolean picking){
     glLoadIdentity();
@@ -1422,6 +1711,24 @@ void myReshape(int w, int h){
 	glMatrixMode(GL_MODELVIEW);
 }
 
+void redisplayTopSubwindow(int width, int height)
+{
+	// glViewport(botom, left, width, height)
+	// define parte da janela a ser utilizada pelo OpenGL
+	glViewport(0, 0, (GLint)width, (GLint)height);
+	int widthA = glutGet(GLUT_WINDOW_WIDTH);
+	int heigthA = glutGet(GLUT_WINDOW_HEIGHT);
+	glutPositionWindow(widthA - 200, heigthA - 200);
+	// Matriz Projeccao
+	// Matriz onde se define como o mundo e apresentado na janela
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(60, (GLfloat)width / height, .5, 100);
+	// Matriz Modelview
+	// Matriz onde são realizadas as tranformacoes dos modelos desenhados
+	glMatrixMode(GL_MODELVIEW);
+
+}
 
 void motionRotate(int x, int y){
 #define DRAG_SCALE	0.01
@@ -1542,6 +1849,7 @@ int picking(int x, int y){
 
 	return objid;
 }
+
 void mouse(int btn, int state, int x, int y){
 	switch(btn) {
 		case GLUT_RIGHT_BUTTON :
@@ -1580,7 +1888,6 @@ void mouse(int btn, int state, int x, int y){
 				break;
 	}
 }
-
 
 void static testeSom() {
 
@@ -2042,13 +2349,417 @@ void static runTests() {
 
 }
 
-void timer(int n) {
+GLfloat novoZ(GLfloat nx, GLfloat ny, GLfloat nz) {
 
-	glutPostRedisplay();
-	
-	glutTimerFunc(25, timer, 0);
+	for (int i = 0; i < numNos; i++)
+	{
+		GLfloat z = ((nos[i].z + OBJECTO_ALTURA * 0.5) * 5);
+		GLfloat nyy = ny;
+		GLfloat nxx = nx;
+		GLfloat xi = (nos[i].x - nos[i].largura* 0.5) * 5;
+		GLfloat xf = (nos[i].x + nos[i].largura* 0.5) * 5;
+		GLfloat yi = (nos[i].y - nos[i].largura* 0.5) * 5;
+		GLfloat yf = (nos[i].y + nos[i].largura* 0.5) * 5;
+
+		if (xi < nxx  &&  nxx < xf) {
+			if (yi < nyy && nyy < yf) {
+				return z;
+			}
+		}
+	}
+
+	for (int i = 0; i < numArcos; i++)
+	{
+		int noi = arcos[i].noi;
+		int nof = arcos[i].nof;
+		int larg = arcos[i].largura * 5;
+		if (noi > nof)
+		{
+			int aux = nof;
+			nof = noi;
+			noi = aux;
+		}
+
+		if (nos[noi].x == nos[nof].x)
+		{
+			if (nos[noi].z != nos[nof].z)
+			{
+				GLfloat nyy = ny;
+				GLfloat yi = (nos[noi].y) * 5;
+				GLfloat yf = (nos[nof].y) * 5;
+				if (yi < yf)
+				{
+					yi = yi + (nos[noi].largura * 0.5 * 5);
+					yf = yf - (nos[nof].largura* 0.5 * 5);
+				}
+				else {
+					yi = yi - (nos[noi].largura * 0.5 * 5);
+					yf = yf + (nos[nof].largura* 0.5 * 5);
+				}
+
+				GLfloat xi = (nos[noi].x * 5) - (larg * 0.5);
+				GLfloat xf = (nos[noi].x * 5) + (larg * 0.5);
+
+				GLfloat dify = ((nos[nof].y - nos[noi].y)) * 5; //cateto
+				GLfloat difz = ((nos[nof].z - nos[noi].z)) * 5; //cateto
+
+				GLfloat hipotenusa = sqrt((dify * dify) + (difz*difz));
+
+				GLfloat inclinacao = atan(difz / dify);
+
+				if (yi <0 && yf <0)
+				{
+					yi = yi * -1;
+					nyy = ny * -1;
+					yf = yf * -1;
+				}
+				else if (yi<0 && yf >= 0)
+				{
+					yi = ((yi * -1) + 2 * yf);
+					nyy = ny * -1;
+				}
+				else if (yi >= 0 && yf>0)
+				{
+					int aux = yi;
+					yi = yf;
+					yf = aux;
+				}
+
+				if (yi > nyy && nyy > yf)
+				{
+					if (xi < nx && nx < xf)
+					{
+						GLfloat z = tan(inclinacao) * (dify - (nyy - yf)) + OBJECTO_ALTURA * 0.5 + 2.5 + nos[nof].z;
+						if (inclinacao<0)
+						{
+							return -z;
+						}
+						else
+							return z;
+
+					}
+
+				}
+			}
+		}
+		if (nos[noi].y == nos[nof].y)
+		{
+			if (nos[noi].z != nos[nof].z)
+			{
+				GLfloat nyy = ny;
+				GLfloat nxx = nx;
+				GLfloat xi = (nos[noi].x) * 5;
+				GLfloat xf = (nos[nof].x) * 5;
+
+				if (xi < xf)
+				{
+					xi = xi + (nos[noi].largura * 0.5 * 5);
+					xf = xf - (nos[nof].largura* 0.5 * 5);
+				}
+				else {
+					xi = xi - (nos[noi].largura * 0.5 * 5);
+					xf = xf + (nos[nof].largura* 0.5 * 5);
+				}
+
+				GLfloat yi = (nos[noi].y - (larg * 0.5) * 5);
+				GLfloat yf = (nos[noi].y + (larg * 0.5) * 5);
+
+				GLfloat difx = xf - xi; //cateto
+				GLfloat difz = ((nos[nof].z - nos[noi].z)) * 5; //cateto
+
+				if (difz < 0)
+				{
+					difz = difz * -1;
+				}
+				if (difx < 0)
+				{
+					difx = difx * -1;
+				}
+				GLfloat inclinacao = atan(difz / difx);
+
+				if (nxx == 0)
+				{
+					nxx = nxx + 0.000001;
+				}
+
+				if (xi <0 && xf < 0)
+				{
+					xi = xi * -1;
+					nxx = nx * -1;
+					xf = xf * -1;
+				}
+				if (xi >= 0 && xf<0)
+				{
+					xf = ((xf * -1) + 2 * xi);
+					nxx = nx * -1;
+				}
+
+				if (xi < nxx  &&  nxx < xf)
+				{
+					if (yi < nyy && nyy < yf)
+					{
+						GLfloat z = tan(inclinacao) * (difx - (nxx - xi)) + OBJECTO_ALTURA * 0.5 + 2.5;
+						if (inclinacao<0)
+						{
+							return -z;
+						}
+						else
+							return z;
+
+					}
+
+				}
+			}
+			else {
+				return nz;
+			}
+		}
+	}
+	return nz;
 }
 
+void printNomePOI(int i) {
+	switch (i) {
+	case(0):
+		nomePOI = "";
+		break;
+	case(1):
+		nomePOI = "Estadio do Dragao";
+		break;
+	case(2):
+		nomePOI = "Casa da Musica";
+		break;
+	case(3):
+		nomePOI = "Torre dos Clerigos";
+		break;
+	case(4):
+		nomePOI = "Estaçao Ferroviaria de Porto Sao Bento";
+		break;
+	case(5):
+		nomePOI = "Se do Porto";
+		break;
+	case(6):
+		nomePOI = "Palacio da Bolsa";
+		break;
+	case(7):
+		nomePOI = "Museu Serralves";
+		break;
+	case(8):
+		nomePOI = "Forte de S.Franscisco do Queijo";
+		break;
+	case(9):
+		nomePOI = "Igreja de S.Franscisco";
+		break;
+	case(10):
+		nomePOI = "Coliseu do Porto";
+		break;
+	case(11):
+		nomePOI = "Palacio de Cristal";
+		break;
+	case(12):
+		nomePOI = "Casa do Infante";
+		break;
+	case(13):
+		nomePOI = "Alfandega do Porto";
+		break;
+	case(14):
+		nomePOI = "Teatro Rivoli";
+		break;
+	case(15):
+		nomePOI = "Rotunda da Boavista";
+		break;
+	case(16):
+		nomePOI = "Mercado Ferreira Borges";
+		break;
+	case(17):
+		nomePOI = "Jardim Botanico";
+		break;
+	case(18):
+		nomePOI = "Sealife Matosinhos";
+		break;
+	case(19):
+		nomePOI = "Livralia Lello";
+		break;
+	}
+}
+
+GLboolean detectaColisao(GLfloat nx, GLfloat ny, GLfloat nz)
+{
+
+	for (int i = 0; i < numNos; i++)
+	{
+		GLfloat z = ((nos[i].z + OBJECTO_ALTURA * 0.5) * 5);
+		GLfloat xi = (nos[i].x - (nos[i].largura * 0.5)) * 5;
+		GLfloat xf = (nos[i].x + (nos[i].largura * 0.5)) * 5;
+		GLfloat yi = (nos[i].y - (nos[i].largura * 0.5)) * 5;
+		GLfloat yf = (nos[i].y + (nos[i].largura * 0.5)) * 5;
+
+		if (xi < nx  &&  nx < xf) {
+			if (yi < ny && ny < yf) {
+				if (nz = z)
+				{
+					if (nosVisitados[i] == 0)
+					{
+						nosVisitados[i] = 1;
+					}
+					printNomePOI(nos[i].idPOI);
+					return true;
+				}
+
+
+			}
+		}
+	}
+	printNomePOI(0);
+	for (int i = 0; i < numArcos; i++)
+	{
+		int noi = arcos[i].noi;
+		int nof = arcos[i].nof;
+		int larg = arcos[i].largura;
+
+		if (noi > nof)
+		{
+			int aux = nof;
+			nof = noi;
+			noi = aux;
+		}
+
+		if (nos[noi].x == nos[nof].x)
+		{
+			GLfloat nyy = ny;
+			GLfloat yi = (nos[noi].y) * 5;
+			GLfloat yf = (nos[nof].y) * 5;
+			GLfloat xi = (nos[noi].x - (larg * 0.5)) * 5;
+			GLfloat xf = (nos[noi].x + (larg * 0.5)) * 5;
+
+
+			if (yi <0 && yf <0)
+			{
+				yi = yi * -1 + (nos[noi].largura * 0.5);
+				nyy = ny * -1;
+				yf = yf * -1 - (nos[nof].largura * 0.5);
+			}
+			else	if (yi<0 && yf >= 0)
+			{
+				yi = ((yi * -1) + 2 * yf) + (nos[nof].largura * 0.5);
+				yf = yf - (nos[noi].largura * 0.5);
+				nyy = ny * -1;
+			}
+			else 	if (yi >= 0 && yf>0)
+			{
+				int aux = yi;
+				yi = yf + (nos[noi].largura * 0.5);
+				yf = aux - (nos[nof].largura * 0.5);;
+			}
+
+			if (yi > nyy && nyy > yf)
+			{
+				if (xi < nx && nx < xf)
+				{
+					return true;
+				}
+
+			}
+		}
+		if (nos[noi].y == nos[nof].y)
+		{
+			GLfloat nyy = ny;
+			GLfloat nxx = nx;
+			GLfloat xi = (nos[noi].x) * 5;
+			GLfloat xf = (nos[nof].x) * 5;
+			GLfloat yi = (nos[noi].y - (nos[nof].largura * 0.5)) * 5;
+			GLfloat yf = (nos[noi].y + (nos[nof].largura * 0.5)) * 5;
+
+			if (nxx == 0)
+			{
+				nxx = nxx + 0.000001;
+			}
+
+			if (xi <0 && xf < 0)
+			{
+				xi = xi * -1 - (nos[noi].largura * 0.5);
+				nxx = nx * -1;
+				xf = xf * -1 + (nos[nof].largura * 0.5);
+			}
+			if (xi >= 0 && xf<0)
+			{
+				xf = ((xf * -1) + 2 * xi) + (nos[nof].largura * 0.5);
+				xi = xi - (nos[noi].largura * 0.5);
+				nxx = nx * -1;
+			}
+
+			if (xi >= 0 && xf>0)
+			{
+				xf = xf + (nos[nof].largura * 0.5);
+				xi = xi - (nos[noi].largura * 0.5);
+			}
+
+			if (xi < nxx  &&  nxx < xf)
+			{
+				if (yi < ny && ny < yf)
+				{
+					return true;
+				}
+
+			}
+		}
+	}
+
+	return(GL_FALSE);
+}
+
+void timer(int n) {
+
+	GLfloat nx, ny, nz;
+	GLboolean andar = GL_FALSE;
+
+	if (modelo.modelo[JANELA_NAVIGATE].GetSequence() != 20)
+	{
+		glutTimerFunc(estado.timer, timer, 0);
+	}
+
+	if (estado.teclas.up) {
+		nx = modelo.objeto.pos.x + cos(modelo.objeto.dir)* modelo.objeto.vel;
+		ny = modelo.objeto.pos.y + sin(modelo.objeto.dir)* modelo.objeto.vel;
+		nz = novoZ(nx, ny, modelo.objeto.pos.z);
+		if (detectaColisao(nx, ny, nz)) {
+			modelo.objeto.pos.x = nx;
+			modelo.objeto.pos.y = ny;
+			modelo.objeto.pos.z = nz;
+		}
+		andar = GL_TRUE;
+	}
+	if (estado.teclas.down) {
+		nx = modelo.objeto.pos.x - cos(modelo.objeto.dir)* modelo.objeto.vel;
+		ny = modelo.objeto.pos.y - sin(modelo.objeto.dir)*modelo.objeto.vel;
+		nz = novoZ(nx, ny, modelo.objeto.pos.z);
+		if (detectaColisao(nx, ny, nz)) {
+			modelo.objeto.pos.x = nx;
+			modelo.objeto.pos.y = ny;
+			modelo.objeto.pos.z = nz;
+		}
+		andar = GL_TRUE;
+	}
+	if (estado.teclas.left) {
+		modelo.objeto.dir += rad(OBJECTO_ROTACAO);
+	}
+	if (estado.teclas.right) {
+		modelo.objeto.dir -= rad(OBJECTO_ROTACAO);
+	}
+	if (andar && modelo.modelo[JANELA_NAVIGATE].GetSequence() != 3)
+	{
+		modelo.modelo[JANELA_NAVIGATE].SetSequence(3);
+		modelo.modelo[JANELA_TOP].SetSequence(3);
+	}
+	else
+		if (!andar && modelo.modelo[JANELA_NAVIGATE].GetSequence() != 0)
+		{
+			modelo.modelo[JANELA_NAVIGATE].SetSequence(0);
+			modelo.modelo[JANELA_TOP].SetSequence(0);
+		}
+
+	redisplayAll();
+}
 
 void main(int argc, char **argv)
 {
@@ -2062,22 +2773,42 @@ void main(int argc, char **argv)
 
 /* need both double buffering and z buffer */
 
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-    glutInitWindowSize(640, 480);
-    glutCreateWindow("OpenGL");
-    glutReshapeFunc(myReshape);
-    glutDisplayFunc(display);
+	glutInitWindowPosition(10, 10);
+	glutInitWindowSize(800, 600);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+	if ((estado.mainWindow = glutCreateWindow("Lapr5")) == GL_FALSE) {
+		exit(1);
+		imprime_ajuda();
+	}
+	myInit(0);
+	mdlviewer_init("homer.mdl", modelo.modelo[JANELA_NAVIGATE]);
+	glutReshapeFunc(myReshape);
+	glutDisplayFunc(display);
+	glutTimerFunc(estado.timer, timer, 0);
 	glutKeyboardFunc(keyboard);
 	glutSpecialFunc(Special);
+	glutSpecialUpFunc(SpecialKeyUp);
 	glutMouseFunc(mouse);
-	glutTimerFunc(25, timer, 0);
+
+	int width = glutGet(GLUT_WINDOW_WIDTH);
+	int heigth = glutGet(GLUT_WINDOW_HEIGHT);
+	estado.topSubwindow = glutCreateSubWindow(estado.mainWindow, (width - 200), (heigth - 200), 200, 200);
+	myInit(1);
+	mdlviewer_init("homer.mdl", modelo.modelo[JANELA_TOP]);
+	glutReshapeFunc(redisplayTopSubwindow);
+	glutDisplayFunc(displayTopSubwindow);
+	glutTimerFunc(estado.timer, timer, 0);
+	glutKeyboardFunc(keyboard);
+	glutSpecialFunc(Special);
+	glutSpecialUpFunc(SpecialKeyUp);
+	glutMouseFunc(mouse);
 
 	RAIN = GL_FALSE;
 	SNOW = GL_FALSE;
 	HAIL = GL_FALSE;
 
-	myInit();
-	getPercursoHttp();
+	
+	//getPercursoHttp();
 	//testeHttp();
 	imprime_ajuda();
 
