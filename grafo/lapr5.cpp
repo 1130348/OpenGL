@@ -189,6 +189,8 @@ string nome;
 GLboolean RAIN;
 GLboolean SNOW;
 GLboolean HAIL;
+GLboolean   FULL;
+GLboolean   FPSSHOW;
 int weather;
 
 Model_3DS modeloDragao[2];
@@ -211,6 +213,12 @@ Model_3DS modeloJardBot[2];
 Model_3DS modeloSealife[2];
 Model_3DS modeloLello[2];
 
+int frameCount = 0;
+float fps2 = 0;
+int currentTime = 0, previousTime = 0;
+
+int lastTick = clock();
+int fpsLimit = 30;
 
 float slowdown = 2.0;
 float velocity = 0.0;
@@ -292,6 +300,22 @@ void initParticles(int i) {
 
 }
 
+void calculateFPS()
+{
+
+	frameCount++;
+	currentTime = glutGet(GLUT_ELAPSED_TIME);
+	int timeInterval = currentTime - previousTime;
+
+	if (timeInterval > 1000)
+	{
+
+		fps2 = frameCount / (timeInterval / 1000.0f);
+		previousTime = currentTime;
+		frameCount = 0;
+	}
+}
+
 unsigned int split(const std::string &txt, std::vector<std::string> &strs, char ch)
 {
 	unsigned int pos = txt.find(ch);
@@ -354,6 +378,19 @@ void loadTexture(GLuint texture, const char* filename)
 
 void myInit(int janela)
 {
+	visita.data = "0/0/0";
+	visita.descricao = "Default";
+	visita.horaInicio = "0/0/0";
+	visita.percursoId = 0;
+	visita.UserId = 0;
+	visita.visitaId = 0;
+	Percurso a;
+	a.descricao = "Default";
+	a.id = 0;
+	a.nome = "Default";
+
+	visita.rota = a;
+
 	GLfloat LuzAmbiente[]={0.5,0.5,0.5, 0.0};
 
 	glClearColor (0.0, 0.0, 0.0, 0.0);
@@ -828,6 +865,66 @@ void printtext(int x, int y, string string)
 	glPopMatrix();
 	glMatrixMode(GL_MODELVIEW);
 	glPopMatrix();
+}
+
+void drawFPS()
+{
+
+	//glLoadIdentity();
+	string str = std::to_string(fps2);
+	printtext(0, 300, str);
+	glEnable(GL_LIGHTING);
+
+}
+
+
+void printVisita() {
+
+
+	//glDisable(GL_TEXTURE_2D);
+	//glDisable(GL_LIGHTING);
+	printtext(0, 100, to_string(visita.visitaId));
+	printtext(0, 80, to_string(visita.UserId));
+	printtext(0, 60, visita.descricao);
+	printtext(0, 40, visita.data);
+	printtext(0, 20, visita.horaInicio);
+	printtext(0, 0, to_string(visita.percursoId));
+	glEnable(GL_LIGHTING);
+
+}
+
+Poi getPoiById(int id) {
+
+	Poi a;
+
+	vector<Poi> lista;
+	lista = visita.rota.pois;
+	for (vector<Poi>::iterator it = lista.begin(); it != lista.end(); ++it) {
+
+		if (it->id == id) {
+			a = *it;
+			break;
+		}
+	}
+	return a;
+
+
+}
+
+void printPoi(Poi p) {
+
+	printtext(0, 260, p.nome);
+	printtext(0, 240, p.descricao);
+	printtext(0, 220, p.nomeLocal);
+	printtext(0, 200, p.categoria);
+	printtext(0, 180, to_string(p.duracaoVisita));
+	printtext(0, 160, p.localId);
+	printtext(0, 140, to_string(p.id));
+	string coord = to_string(p.x) + " | " + to_string(p.y);
+	printtext(0, 120, to_string(p.x));
+
+
+
 }
 
 void desenhaChao(GLfloat xi, GLfloat yi, GLfloat zi, GLfloat xf, GLfloat yf, GLfloat zf, int orient){
@@ -1395,6 +1492,7 @@ void display(void)
 	material(cinza);
 	desenhaSolo();
 	material(emerald);
+	printVisita();
 	printtext(50,50,"Login : "+nome);
 	
 	desenhaEixos();
@@ -1428,6 +1526,9 @@ void display(void)
 	if (TESTES) {
 		
 	
+	}
+	if (FPSSHOW) {
+		drawFPS();
 	}
 	if (RAIN) {
 		material(azul);
@@ -1621,6 +1722,30 @@ void keyboard(unsigned char key, int x, int y)
 				
 				glutPostRedisplay();
 				break;
+
+		case 'f':
+		case 'F':
+			if (FULL) {
+				FULL = GL_FALSE;
+				glutReshapeWindow(glutGet(GLUT_SCREEN_WIDTH) - 200, glutGet(GLUT_SCREEN_HEIGHT) - 200);
+				glutPositionWindow(GLUT_SCREEN_HEIGHT / 2, GLUT_SCREEN_WIDTH / 2);
+
+
+			}
+			else {
+				glutFullScreen();
+				FULL = GL_TRUE;
+			}
+			break;
+		case '<':
+
+			if (FPSSHOW) {
+				FPSSHOW = GL_FALSE;
+			}
+			else {
+				FPSSHOW = GL_TRUE;
+			}
+			break;
 
 	}
 }
