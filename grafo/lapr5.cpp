@@ -120,8 +120,12 @@ enum tipo_material {brass, red_plastic, emerald, slate, azul, preto, cinza};
 typedef	GLfloat Vertice[3];
 typedef	GLfloat Vector[4];
 
+typedef struct pos_t {
+	GLfloat    x, y, z;
+}pos_t;
 
 typedef struct Camera{
+	pos_t	eye;
 	GLfloat fov;
 	GLfloat dir_lat;
 	GLfloat dir_long;
@@ -134,9 +138,7 @@ typedef struct teclas_t {
 	GLboolean   up, down, left, right;
 }teclas_t;
 
-typedef struct pos_t {
-	GLfloat    x, y, z;
-}pos_t;
+
 
 typedef struct objecto_t {
 	pos_t    pos;
@@ -185,6 +187,7 @@ int nosVisitados[30];
 ISoundEngine* engine = createIrrKlangDevice();
 
 GLboolean TESTES;
+GLboolean firstPerson = GL_FALSE;
 string nome;
 GLboolean RAIN;
 GLboolean SNOW;
@@ -666,28 +669,34 @@ void drawRain() {
 
 void imprime_ajuda(void)
 {
-
-  printf("\n\nDesenho de um labirinto a partir de um grafo\n");
-  printf("h,H - Ajuda \n");
-  printf("i,I - Reset dos Valores \n");
-  printf("******* Diversos ******* \n");
-  printf("l,L - Alterna o calculo luz entre Z e eye (GL_LIGHT_MODEL_LOCAL_VIEWER)\n");
-  printf("k,K - Alerna luz de camera com luz global \n");
-  printf("s,S - PolygonMode Fill \n");
-  printf("w,W - PolygonMode Wireframe \n");
-  printf("p,P - PolygonMode Point \n");
-  printf("c,C - Liga/Desliga Cull Face \n");
-  printf("n,N - Liga/Desliga apresentação das normais \n");
-  printf("******* grafos ******* \n");
-  printf("F1  - Grava grafo do ficheiro \n");
-  printf("F2  - Lê grafo para ficheiro \n");
-  printf("F6  - Cria novo grafo\n");
-  printf("******* Camera ******* \n");
-  printf("Botão esquerdo - Arrastar os eixos (centro da camera)\n");
-  printf("Botão direito  - Rodar camera\n");
-  printf("Botão direito com CTRL - Zoom-in/out\n");
-  printf("PAGE_UP, PAGE_DOWN - Altera distância da camara \n");
-  printf("ESC - Sair\n");
+	printf("\n\nDesenho de um labirinto a partir de um grafo\n");
+	printf("h,H - Ajuda \n");
+	printf("i,I - Reset dos Valores \n");
+	printf("******* Diversos ******* \n");
+	printf("l,L - Alterna o calculo luz entre Z e eye (GL_LIGHT_MODEL_LOCAL_VIEWER)\n");
+	printf("k,K - Alerna luz de camera com luz global \n");
+	printf("s,S - PolygonMode Fill \n");
+	printf("w,W - PolygonMode Wireframe \n");
+	printf("p,P - PolygonMode Point \n");
+	printf("c,C - Liga/Desliga Cull Face \n");
+	printf("n,N - Liga/Desliga apresentação das normais \n");
+	printf("j,J - Alterna vista 1ª/3ª pessoa \n");
+	printf("b,B - Retirar paredes \n");
+	printf("v,V - Mudar skybox\n");
+	printf("q,Q - Inserir nome de utilizador\n");
+	printf("y,Y - Inserir chuva \n");
+	printf("x,X - Inserir granizo \n");
+	printf("z,Z - Inserir cneve \n");
+	printf("******* grafos ******* \n");
+	printf("F1  - Grava grafo do ficheiro \n");
+	printf("F2  - Lê grafo para ficheiro \n");
+	printf("F6  - Cria novo grafo\n");
+	printf("******* Camera ******* \n");
+	printf("Botão esquerdo - Arrastar os eixos (centro da camera)\n");
+	printf("Botão direito  - Rodar camera\n");
+	printf("Botão direito com CTRL - Zoom-in/out\n");
+	printf("PAGE_UP, PAGE_DOWN - Altera distância da camara \n");
+	printf("ESC - Sair\n");
 }
 
 
@@ -883,7 +892,6 @@ void drawFPS()
 	printtext(0, 300, str);
 
 }
-
 
 void printVisita() {
 
@@ -1474,23 +1482,40 @@ void desenhaEixos(){
 	glPopMatrix();
 }
 
-void setCamera(){
+void setCamera(Camera *cam, objecto_t obj) {
 	Vertice eye;
-	eye[0]=estado.camera.center[0]+estado.camera.dist*cos(estado.camera.dir_long)*cos(estado.camera.dir_lat);
-	eye[1]=estado.camera.center[1]+estado.camera.dist*sin(estado.camera.dir_long)*cos(estado.camera.dir_lat);
-	eye[2]=estado.camera.center[2]+estado.camera.dist*sin(estado.camera.dir_lat);
+	eye[0] = estado.camera.center[0] + estado.camera.dist*cos(estado.camera.dir_long)*cos(estado.camera.dir_lat);
+	eye[1] = estado.camera.center[1] + estado.camera.dist*sin(estado.camera.dir_long)*cos(estado.camera.dir_lat);
+	eye[2] = estado.camera.center[2] + estado.camera.dist*sin(estado.camera.dir_lat);
 
-	if(estado.light){
-		gluLookAt(eye[0],eye[1],eye[2],estado.camera.center[0],estado.camera.center[1],estado.camera.center[2],0,0,1);
+	if (firstPerson)
+	{
+		cam->eye.x = obj.pos.x;
+		cam->eye.y = obj.pos.y;
+		cam->eye.z = obj.pos.z + 7;
+
+		float x, y, z;
+		x = obj.pos.x + cos(modelo.objeto.dir)* cos(estado.camera.dir_lat);
+		y = obj.pos.y + sin(modelo.objeto.dir)* cos(estado.camera.dir_lat);
+		z = obj.pos.z + 6.5;
+		gluLookAt(cam->eye.x, cam->eye.y, cam->eye.z, x, y, z, 0, 0, 1);
 		putLights((GLfloat*)white_light);
-	}else{
-		putLights((GLfloat*)white_light);
-		gluLookAt(eye[0],eye[1],eye[2],estado.camera.center[0],estado.camera.center[1],estado.camera.center[2],0,0,1);
+	}
+	else {
+
+		if (estado.light) {
+			gluLookAt(eye[0], eye[1], eye[2], estado.camera.center[0], estado.camera.center[1], estado.camera.center[2], 0, 0, 1);
+			putLights((GLfloat*)white_light);
+		}
+		else {
+			putLights((GLfloat*)white_light);
+			gluLookAt(eye[0], eye[1], eye[2], estado.camera.center[0], estado.camera.center[1], estado.camera.center[2], 0, 0, 1);
+		}
 	}
 }
 
 void setCameraUp() {
-	gluLookAt(0, -40, 90, estado.camera.center[0], -30, estado.camera.center[2], 0, 0, 1);
+	gluLookAt(modelo.objeto.pos.x, modelo.objeto.pos.y, 90, modelo.objeto.pos.x, modelo.objeto.pos.y, modelo.objeto.pos.z, 0, 1, 0);
 	putLights((GLfloat*)white_light);
 }
 
@@ -1541,7 +1566,7 @@ void display(void)
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glLoadIdentity();
-	setCamera();
+	setCamera(&estado.camera, modelo.objeto);
 
 	glPushAttrib(GL_ALL_ATTRIB_BITS);
 		glPushMatrix();
@@ -1861,6 +1886,10 @@ void keyboard(unsigned char key, int x, int y)
 				FPSSHOW = GL_TRUE;
 			}
 			break;
+		case 'j':
+		case 'J':
+			firstPerson = !firstPerson;
+			break;
 
 	}
 }
@@ -1955,8 +1984,6 @@ void myReshape(int w, int h){
 	glMatrixMode(GL_MODELVIEW);
 }
 
-
-
 void motionRotate(int x, int y){
 #define DRAG_SCALE	0.01
 	double lim=M_PI/2-0.1;
@@ -2002,7 +2029,7 @@ void motionDrag(int x, int y){
 	
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	setCamera();
+	setCamera(&estado.camera, modelo.objeto);
 	desenhaPlanoDrag(estado.eixoTranslaccao);
 	
 	n = glRenderMode(GL_RENDER);
@@ -2052,7 +2079,7 @@ int picking(int x, int y){
 	
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	setCamera();
+	setCamera(&estado.camera, modelo.objeto);
 	desenhaEixos();
 	
 	n = glRenderMode(GL_RENDER);
@@ -2600,7 +2627,7 @@ GLfloat novoZ(GLfloat nx, GLfloat ny, GLfloat nz) {
 	{
 		int noi = arcos[i].noi;
 		int nof = arcos[i].nof;
-		int larg = arcos[i].largura * 5;
+		GLfloat larg = arcos[i].largura;
 		if (noi > nof)
 		{
 			int aux = nof;
@@ -2615,56 +2642,30 @@ GLfloat novoZ(GLfloat nx, GLfloat ny, GLfloat nz) {
 				GLfloat nyy = ny;
 				GLfloat yi = (nos[noi].y) * 5;
 				GLfloat yf = (nos[nof].y) * 5;
-				if (yi < yf)
-				{
-					yi = yi + (nos[noi].largura * 0.5 * 5);
-					yf = yf - (nos[nof].largura* 0.5 * 5);
-				}
-				else {
-					yi = yi - (nos[noi].largura * 0.5 * 5);
-					yf = yf + (nos[nof].largura* 0.5 * 5);
-				}
 
-				GLfloat xi = (nos[noi].x * 5) - (larg * 0.5);
-				GLfloat xf = (nos[noi].x * 5) + (larg * 0.5);
+				GLfloat xi = (nos[noi].x * 5) - (2 * larg);
+				GLfloat xf = (nos[noi].x * 5) + (2 * larg);
 
-				GLfloat dify = ((nos[nof].y - nos[noi].y)) * 5; //cateto
-				GLfloat difz = ((nos[nof].z - nos[noi].z)) * 5; //cateto
-
-				GLfloat hipotenusa = sqrt((dify * dify) + (difz*difz));
+				GLfloat dify = ((nos[nof].y - nos[noi].y)) * 5;  //cateto
+				GLfloat difz = ((nos[nof].z - nos[noi].z)) * 5; //cateto				
 
 				GLfloat inclinacao = atan(difz / dify);
 
-				if (yi <0 && yf <0)
+				if (yi < yf)
 				{
-					yi = yi * -1;
-					nyy = ny * -1;
-					yf = yf * -1;
+					yi = yi + (nos[noi].largura * 0.5);
+					yf = yf - (nos[nof].largura* 0.5);
 				}
-				else if (yi<0 && yf >= 0)
-				{
-					yi = ((yi * -1) + 2 * yf);
-					nyy = ny * -1;
+				else {
+					yi = yi - (nos[noi].largura * 0.5);
+					yf = yf + (nos[nof].largura* 0.5);
 				}
-				else if (yi >= 0 && yf>0)
-				{
-					int aux = yi;
-					yi = yf;
-					yf = aux;
-				}
-
-				if (yi > nyy && nyy > yf)
+				GLfloat dist = nyy - yi;
+				if (yi < nyy && nyy < yf)
 				{
 					if (xi < nx && nx < xf)
 					{
-						GLfloat z = tan(inclinacao) * (dify - (nyy - yf)) + OBJECTO_ALTURA * 0.5 + 2.5 + nos[nof].z;
-						if (inclinacao<0)
-						{
-							return -z;
-						}
-						else
-							return z;
-
+						return (tan(inclinacao) * dist) + OBJECTO_ALTURA * 0.5 + 2.5 + nos[nof].z;
 					}
 
 				}
@@ -2689,20 +2690,12 @@ GLfloat novoZ(GLfloat nx, GLfloat ny, GLfloat nz) {
 					xf = xf + (nos[nof].largura* 0.5 * 5);
 				}
 
-				GLfloat yi = (nos[noi].y - (larg * 0.5) * 5);
-				GLfloat yf = (nos[noi].y + (larg * 0.5) * 5);
+				GLfloat yi = (nos[noi].y - (larg * 0.5)) * 5;
+				GLfloat yf = (nos[noi].y + (larg * 0.5)) * 5;
 
 				GLfloat difx = xf - xi; //cateto
 				GLfloat difz = ((nos[nof].z - nos[noi].z)) * 5; //cateto
 
-				if (difz < 0)
-				{
-					difz = difz * -1;
-				}
-				if (difx < 0)
-				{
-					difx = difx * -1;
-				}
 				GLfloat inclinacao = atan(difz / difx);
 
 				if (nxx == 0)
@@ -2721,29 +2714,19 @@ GLfloat novoZ(GLfloat nx, GLfloat ny, GLfloat nz) {
 					xf = ((xf * -1) + 2 * xi);
 					nxx = nx * -1;
 				}
-
+				GLfloat dist = nxx - xi;
 				if (xi < nxx  &&  nxx < xf)
 				{
 					if (yi < nyy && nyy < yf)
 					{
-						GLfloat z = tan(inclinacao) * (difx - (nxx - xi)) + OBJECTO_ALTURA * 0.5 + 2.5;
-						if (inclinacao<0)
-						{
-							return -z;
-						}
-						else
-							return z;
-
+						//float z = tan(inclinacao) * (difx - (nxx - xi)) + OBJECTO_ALTURA * 0.5 + 2.5;
+						return tan(inclinacao) * dist + OBJECTO_ALTURA * 0.5 + 2.5;;
 					}
-
 				}
-			}
-			else {
-				return nz;
 			}
 		}
 	}
-	return nz;
+	return modelo.objeto.pos.z;
 }
 
 void printNomePOI(int i) {
@@ -2822,7 +2805,7 @@ GLboolean detectaColisao(GLfloat nx, GLfloat ny, GLfloat nz)
 		GLfloat xf = (nos[i].x + (nos[i].largura * 0.5)) * 5;
 		GLfloat yi = (nos[i].y - (nos[i].largura * 0.5)) * 5;
 		GLfloat yf = (nos[i].y + (nos[i].largura * 0.5)) * 5;
-	
+
 		if (xi < nx  &&  nx < xf) {
 			if (yi < ny && ny < yf) {
 				if (nz = z)
@@ -2831,10 +2814,7 @@ GLboolean detectaColisao(GLfloat nx, GLfloat ny, GLfloat nz)
 					{
 						nosVisitados[i] = 1;
 					}
-				
-					//printNomePOI(nos[i].idPOI);
-					atual = visita.rota.pois.at(i);
-					
+					printNomePOI(nos[i].idPOI);
 					return true;
 				}
 
@@ -2843,9 +2823,6 @@ GLboolean detectaColisao(GLfloat nx, GLfloat ny, GLfloat nz)
 		}
 	}
 	printNomePOI(0);
-	Poi b;
-	b.id = 0;
-	atual = b;
 	for (int i = 0; i < numArcos; i++)
 	{
 		int noi = arcos[i].noi;
@@ -2963,8 +2940,11 @@ void timer(int n) {
 			modelo.objeto.pos.x = nx;
 			modelo.objeto.pos.y = ny;
 			modelo.objeto.pos.z = nz;
+			andar = GL_TRUE;
 		}
-		andar = GL_TRUE;
+		else {
+			andar = GL_FALSE;
+		}
 	}
 	if (estado.teclas.down) {
 		nx = modelo.objeto.pos.x - cos(modelo.objeto.dir)* modelo.objeto.vel;
@@ -2974,8 +2954,11 @@ void timer(int n) {
 			modelo.objeto.pos.x = nx;
 			modelo.objeto.pos.y = ny;
 			modelo.objeto.pos.z = nz;
+			andar = GL_TRUE;
 		}
-		andar = GL_TRUE;
+		else {
+			andar = GL_FALSE;
+		}
 	}
 	if (estado.teclas.left) {
 		modelo.objeto.dir += rad(OBJECTO_ROTACAO);
