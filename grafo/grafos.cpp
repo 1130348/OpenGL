@@ -133,7 +133,8 @@ void leGrafoHTTP(int numNosH, int numArcosH, vector<Poi> pois, vector<Arco> arco
 	for (int i = 0; i < numNos; i++) {
 		nos[i].x = pois.at(i).x;
 		nos[i].y = pois.at(i).y;
-		nos[i].z = rand() % 10 + 1;;
+		nos[i].z = rand() % 5 + 1;
+		nos[i].idPOI= pois.at(i).id;
 	}
 
 	numArcos = numArcosH;

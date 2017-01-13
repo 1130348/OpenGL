@@ -64,6 +64,7 @@ void httpClient::connectTo(std::string ip)
 	if (this->connectSocket == INVALID_SOCKET) {
 		std::cout << "Unable to connect to server!\n";
 		WSACleanup();
+		exit(1);
 	}
 }
 

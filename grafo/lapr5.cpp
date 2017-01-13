@@ -51,7 +51,7 @@ using namespace irrklang;
 #define NOME_TEXTURA_SKYBOX_NIGHT_UP "space_up.jpg"
 
 #define NUM_TEXTURAS		20
-#define MAX_PARTICLES 5000
+#define MAX_PARTICLES 999
 #define WCX		640
 #define WCY		480
 
@@ -171,7 +171,6 @@ typedef struct Modelo {
 
 	GLfloat escala;
 	GLUquadric *quad;
-
 	StudioModel modelo[NUM_JANELAS];
 	objecto_t  objeto;
 }Modelo;
@@ -179,6 +178,7 @@ typedef struct Modelo {
 Estado estado;
 Modelo modelo;
 string nomePOI = "";
+Poi atual;
 Visita visita;
 GLuint texture[21];
 int nosVisitados[30];
@@ -191,7 +191,12 @@ GLboolean SNOW;
 GLboolean HAIL;
 GLboolean   FULL;
 GLboolean   FPSSHOW;
+GLint		distanciaPercorrida;
+float		tempoDecorrido;
 int weather;
+
+int minu=0;
+float seg=0;
 
 Model_3DS modeloDragao[2];
 Model_3DS modeloCasaMusica[2];
@@ -264,7 +269,7 @@ void initEstado(){
 	estado.camera.dir_lat=M_PI/4;
 	estado.camera.dir_long=-M_PI/4;
 	estado.camera.fov=60;
-	estado.camera.dist=100;
+	estado.camera.dist=80;
 	estado.eixo[0]=0;
 	estado.eixo[1]=0;
 	estado.eixo[2]=0;
@@ -284,10 +289,12 @@ void initParticles(int i) {
 	par_sys[i].alive = true;
 	par_sys[i].life = 1.0;
 	par_sys[i].fade = float(rand() % 100) / 1000.0f + 0.003f;
-
-	par_sys[i].xpos = (float)(rand() % -100) + -50;
-	par_sys[i].ypos = 30.0;
-	par_sys[i].zpos = (float)(rand() % -150) + -50;
+	int posXModelo = modelo.objeto.pos.x;
+	int posYModelo = modelo.objeto.pos.y;
+	
+	par_sys[i].xpos = (posXModelo -20) + (rand() % (int)((20 + posXModelo) - (posXModelo - 20) + 1));
+	par_sys[i].ypos = 20.0;
+	par_sys[i].zpos = (posYModelo - 20) + (rand() % (int)((20 + posYModelo) - (posYModelo - 20) + 1))+40;
 
 	par_sys[i].red = 0.5;
 	par_sys[i].green = 0.5;
@@ -349,9 +356,7 @@ void initModelo(){
 	modelo.g_pos_luz2[2]= 5.0;
 	modelo.g_pos_luz2[3]= 0.0;
 
-	modelo.objeto.pos.x = nos[1].x * 5;
-	modelo.objeto.pos.y = nos[1].y * 5;
-	modelo.objeto.pos.z = (nos[1].z + OBJECTO_ALTURA * 0.5) * 5;
+	
 	modelo.objeto.dir = 0;
 	modelo.objeto.vel = OBJECTO_VELOCIDADE;
 }
@@ -378,6 +383,9 @@ void loadTexture(GLuint texture, const char* filename)
 
 void myInit(int janela)
 {
+	distanciaPercorrida=0;
+	tempoDecorrido= glutGet(GLUT_ELAPSED_TIME);;
+
 	visita.data = "0/0/0";
 	visita.descricao = "Default";
 	visita.horaInicio = "0/0/0";
@@ -579,7 +587,7 @@ void drawHail() {
 void drawSnow() {
 	glPushMatrix();
 	float x, y, z;
-	for (loop = 0; loop < MAX_PARTICLES; loop = loop + 2) {
+	for (loop = 0; loop < 100; loop = loop + 2) {
 		if (par_sys[loop].alive == true) {
 			x = par_sys[loop].xpos;
 			y = par_sys[loop].zpos + zoom;
@@ -873,7 +881,6 @@ void drawFPS()
 	//glLoadIdentity();
 	string str = std::to_string(fps2);
 	printtext(0, 300, str);
-	glEnable(GL_LIGHTING);
 
 }
 
@@ -883,13 +890,14 @@ void printVisita() {
 
 	//glDisable(GL_TEXTURE_2D);
 	//glDisable(GL_LIGHTING);
-	printtext(0, 100, to_string(visita.visitaId));
-	printtext(0, 80, to_string(visita.UserId));
-	printtext(0, 60, visita.descricao);
-	printtext(0, 40, visita.data);
-	printtext(0, 20, visita.horaInicio);
-	printtext(0, 0, to_string(visita.percursoId));
-	glEnable(GL_LIGHTING);
+	glColor3f(0,0,0);
+	printtext(400, 480, "VisitaID: "+to_string(visita.visitaId));
+	printtext(400, 460, "UserID: "+to_string(visita.UserId));
+	printtext(400, 440, "Descricao: "+visita.descricao);
+	printtext(400, 420, "Data: "+visita.data);
+	printtext(400, 400, "Hora Inicio: "+visita.horaInicio);
+	printtext(400, 380, "PercursoID: "+to_string(visita.percursoId));
+	//glEnable(GL_LIGHTING);
 
 }
 
@@ -913,15 +921,23 @@ Poi getPoiById(int id) {
 
 void printPoi(Poi p) {
 
-	printtext(0, 260, p.nome);
-	printtext(0, 240, p.descricao);
-	printtext(0, 220, p.nomeLocal);
-	printtext(0, 200, p.categoria);
-	printtext(0, 180, to_string(p.duracaoVisita));
-	printtext(0, 160, p.localId);
-	printtext(0, 140, to_string(p.id));
-	string coord = to_string(p.x) + " | " + to_string(p.y);
-	printtext(0, 120, to_string(p.x));
+	printtext(0, 170, "Nome: "+p.nome);
+	printtext(0, 150, "Descricao: "+p.descricao);
+	printtext(0, 130, "Local: "+p.nomeLocal);
+	printtext(0, 110, "Categoria: "+p.categoria);
+	printtext(0, 90, "Duracao Visita: "+to_string(p.duracaoVisita));
+	printtext(0, 70, "LocalID"+p.localId);
+	printtext(0, 50, "PoiID: "+to_string(p.id));
+	string coX = to_string(p.x);
+	coX.pop_back();
+	coX.pop_back();
+	coX.pop_back();
+	string coY = to_string(p.y);
+	coY.pop_back();
+	coY.pop_back();
+	coY.pop_back();
+	string coord = coX + " | " + coY;
+	printtext(0, 30, "Coordenadas: "+coord);
 
 
 
@@ -1223,6 +1239,7 @@ void desenhaLabirinto(int janela){
 			desenhaNo(i);
 			if (nos[i].idPOI != 0)
 			{
+				
 				desenhaModelo(i, nos[i].idPOI, janela);
 			}
 		}
@@ -1281,12 +1298,49 @@ void desenhaPlanoDrag(int eixo){
 	glPopMatrix();
 }
 
+int getMax() {
+
+	vector<Poi> lista = visita.rota.pois;
+	int maxX = 0;
+	for (vector<Poi>::iterator it = lista.begin(); it != lista.end(); ++it) {
+
+		if (it->x>maxX) {
+			maxX = it->x;
+		}
+	}
+
+	int maxY = 0;
+	for (vector<Poi>::iterator it = lista.begin(); it != lista.end(); ++it) {
+		
+		if (it->y>maxY) {
+			maxY = it->y;
+		}
+	}
+
+	if (maxX>maxY) {
+		return maxX;
+	}
+	else {
+		return maxY;
+	}
+
+	return maxX;
+
+}
+
 void skybox() {
+
 	// Store the current matrix
+	glDisable(GL_LIGHTING);
+	
 	glPushMatrix();
+	glTranslated(nos[0].x*5, nos[0].y*5, 0);
+	
+
 	
 	// Reset and transform the matrix.
 	//glLoadIdentity();
+
 	/*gluLookAt(
 		0, 0, 0,
 		estado.camera.center[0], estado.camera.center[1], estado.camera.center[2],
@@ -1302,10 +1356,20 @@ void skybox() {
 	// Just in case we set all vertices to white.
 	glColor4f(1, 1, 1, 1);
 
+
 	//tamanho da skybox
-	float tamanhoSky = 100;
+	float tamanhoSky;
+	if (getMax()==0) {
+		tamanhoSky = 100;
+	}
+	else {
+		tamanhoSky = (getMax()+ getMax()/2)*5+50;
+	}
+	 
 	int i = weather;
 	// Render the front quad
+
+	
 
 	glBindTexture(GL_TEXTURE_2D, texture[4 + (i * 6)]);
 	
@@ -1381,13 +1445,14 @@ void skybox() {
 	//glPopAttrib();
 	glPopMatrix();
 	glDisable(GL_TEXTURE_2D);
-
+	glEnable(GL_LIGHTING);
 
 }
 
 void desenhaEixos(){
 	glPushMatrix();
-		glTranslated(estado.eixo[0],estado.eixo[1],estado.eixo[2]);
+	glTranslated(nos[0].x * 5, nos[0].y * 5, 0);
+	//glTranslated(estado.eixo[0],estado.eixo[1],estado.eixo[2]);
 		material(emerald);
 		glPushName(EIXO_Z);
 			desenhaEixo();
@@ -1491,45 +1556,18 @@ void display(void)
 
 	material(cinza);
 	desenhaSolo();
-	material(emerald);
-	printVisita();
-	printtext(50,50,"Login : "+nome);
+
 	
-	desenhaEixos();
+	//desenhaEixos();
 	
 	desenhaLabirinto(0);
 
-	material(red_plastic);
-	printtext(100, 50, nomePOI);
- 
-	char x[15];
-	snprintf(x, 10, "%f", modelo.objeto.pos.x);
-	char xA[15] = "X= ";
-	strcat(xA, x);
-	material(red_plastic);
-	printtext(400, 50, xA);
-
-	char y[15];
-	snprintf(y, 10, "%f", modelo.objeto.pos.y);
-	char yA[15] = "Y= ";
-	strcat(yA, y);
-	material(red_plastic);
-	printtext(400, 30, yA);
-
-	char z[15];
-	snprintf(z, 10, "%f", modelo.objeto.pos.z);
-	char zA[15] = "Z= ";
-	strcat(zA, z);
-	material(red_plastic);
-	printtext(400, 10, zA);
 
 	if (TESTES) {
 		
 	
 	}
-	if (FPSSHOW) {
-		drawFPS();
-	}
+
 	if (RAIN) {
 		material(azul);
 		drawRain();
@@ -1562,11 +1600,88 @@ void display(void)
 	else {
 		weather = 2;
 	}
+
 	skybox();
 
+	glDisable(GL_LIGHTING);
+	
+	if (atual.id!=0) {
+		glColor3f(0,0,0);
+		printPoi(atual);
+	}
+
+	if (FPSSHOW) {
+
+		printVisita();
+		printtext(400, 70, "Login : " + nome);
+
+		printtext(400, 90, "Distancia Percorrida : " + to_string(distanciaPercorrida));
+		if (distanciaPercorrida == 0) {
+			tempoDecorrido = glutGet(GLUT_ELAPSED_TIME);
+		}
+
+		seg = ((((glutGet(GLUT_ELAPSED_TIME) - tempoDecorrido) / 1000) / 60) * 100);
+
+		if (seg>59) {
+			minu++;
+			tempoDecorrido = glutGet(GLUT_ELAPSED_TIME);
+		}
+		string minT = to_string(minu);
+		string temp = to_string(((glutGet(GLUT_ELAPSED_TIME) - tempoDecorrido) / 1000) / 60);
+		temp.erase(0, 1);
+		temp.pop_back();
+		temp.pop_back();
+		temp.pop_back();
+		temp.pop_back();
+		printtext(400, 110, "Tempo Decorrido : " + minT + temp);
+		printtext(100, 50, nomePOI);
+
+		drawFPS();
+
+		char x[15];
+		snprintf(x, 10, "%f", modelo.objeto.pos.x);
+		char xA[15] = "X= ";
+		strcat(xA, x);
+
+		printtext(400, 50, xA);
+
+		char y[15];
+		snprintf(y, 10, "%f", modelo.objeto.pos.y);
+		char yA[15] = "Y= ";
+		strcat(yA, y);
+
+		printtext(400, 30, yA);
+
+		char z[15];
+		snprintf(z, 10, "%f", modelo.objeto.pos.z);
+		char zA[15] = "Z= ";
+		strcat(zA, z);
+
+		printtext(400, 10, zA);
+	}
+	glEnable(GL_LIGHTING);
 
 	glFlush();
 	glutSwapBuffers();
+
+}
+
+void redisplayTopSubwindow(int width, int height)
+{
+	// glViewport(botom, left, width, height)
+	// define parte da janela a ser utilizada pelo OpenGL
+	glViewport(0, 0, (GLint)width, (GLint)height);
+	int widthA = glutGet(GLUT_WINDOW_WIDTH);
+	int heigthA = glutGet(GLUT_WINDOW_HEIGHT);
+	glutPositionWindow(widthA - 200, heigthA - 200);
+	// Matriz Projeccao
+	// Matriz onde se define como o mundo e apresentado na janela
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(60, (GLfloat)width / height, .5, 100);
+	// Matriz Modelview
+	// Matriz onde são realizadas as tranformacoes dos modelos desenhados
+	glMatrixMode(GL_MODELVIEW);
 
 }
 
@@ -1730,10 +1845,10 @@ void keyboard(unsigned char key, int x, int y)
 				glutReshapeWindow(glutGet(GLUT_SCREEN_WIDTH) - 200, glutGet(GLUT_SCREEN_HEIGHT) - 200);
 				glutPositionWindow(GLUT_SCREEN_HEIGHT / 2, GLUT_SCREEN_WIDTH / 2);
 
-
 			}
 			else {
 				glutFullScreen();
+		
 				FULL = GL_TRUE;
 			}
 			break;
@@ -1790,15 +1905,19 @@ void Special(int key, int x, int y){
 			break;	
 		case GLUT_KEY_UP:
 			estado.teclas.up = GL_TRUE;
+			distanciaPercorrida++;
 			break;
 		case GLUT_KEY_DOWN:
 			estado.teclas.down = GL_TRUE;
+			distanciaPercorrida++;
 			break;
 		case GLUT_KEY_LEFT:
 			estado.teclas.left = GL_TRUE;
+			distanciaPercorrida++;
 			break;
 		case GLUT_KEY_RIGHT:
 			estado.teclas.right = GL_TRUE;
+			distanciaPercorrida++;
 			break;
 	}
 }
@@ -1836,24 +1955,7 @@ void myReshape(int w, int h){
 	glMatrixMode(GL_MODELVIEW);
 }
 
-void redisplayTopSubwindow(int width, int height)
-{
-	// glViewport(botom, left, width, height)
-	// define parte da janela a ser utilizada pelo OpenGL
-	glViewport(0, 0, (GLint)width, (GLint)height);
-	int widthA = glutGet(GLUT_WINDOW_WIDTH);
-	int heigthA = glutGet(GLUT_WINDOW_HEIGHT);
-	glutPositionWindow(widthA - 200, heigthA - 200);
-	// Matriz Projeccao
-	// Matriz onde se define como o mundo e apresentado na janela
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	gluPerspective(60, (GLfloat)width / height, .5, 100);
-	// Matriz Modelview
-	// Matriz onde são realizadas as tranformacoes dos modelos desenhados
-	glMatrixMode(GL_MODELVIEW);
 
-}
 
 void motionRotate(int x, int y){
 #define DRAG_SCALE	0.01
@@ -2398,6 +2500,7 @@ void static getPercursoHttp() {
 						a.x = 5 * soma;//stof(novaLongitude)/10+ rand() % 10+ -10; 
 							a.y = 0 * soma;//stof(novoNomeL)/10 + rand() % 10 + -10;
 
+
 						Arco b;
 						
 						if (numP<lista.size()) {
@@ -2651,7 +2754,8 @@ void printNomePOI(int i) {
 	case(1):
 		nomePOI = "Estadio do Dragao";
 		break;
-	case(2):
+	case(2) :
+		
 		nomePOI = "Casa da Musica";
 		break;
 	case(3):
@@ -2718,7 +2822,7 @@ GLboolean detectaColisao(GLfloat nx, GLfloat ny, GLfloat nz)
 		GLfloat xf = (nos[i].x + (nos[i].largura * 0.5)) * 5;
 		GLfloat yi = (nos[i].y - (nos[i].largura * 0.5)) * 5;
 		GLfloat yf = (nos[i].y + (nos[i].largura * 0.5)) * 5;
-
+	
 		if (xi < nx  &&  nx < xf) {
 			if (yi < ny && ny < yf) {
 				if (nz = z)
@@ -2727,7 +2831,10 @@ GLboolean detectaColisao(GLfloat nx, GLfloat ny, GLfloat nz)
 					{
 						nosVisitados[i] = 1;
 					}
-					printNomePOI(nos[i].idPOI);
+				
+					//printNomePOI(nos[i].idPOI);
+					atual = visita.rota.pois.at(i);
+					
 					return true;
 				}
 
@@ -2736,6 +2843,9 @@ GLboolean detectaColisao(GLfloat nx, GLfloat ny, GLfloat nz)
 		}
 	}
 	printNomePOI(0);
+	Poi b;
+	b.id = 0;
+	atual = b;
 	for (int i = 0; i < numArcos; i++)
 	{
 		int noi = arcos[i].noi;
@@ -2835,6 +2945,8 @@ GLboolean detectaColisao(GLfloat nx, GLfloat ny, GLfloat nz)
 
 void timer(int n) {
 
+	calculateFPS();
+
 	GLfloat nx, ny, nz;
 	GLboolean andar = GL_FALSE;
 
@@ -2892,7 +3004,7 @@ void main(int argc, char **argv)
 	if (!engine)
 		exit(0);
 
-	engine->play2D("teste.mp3",true);
+	//engine->play2D("teste.mp3",true);
 
     glutInit(&argc, argv);
 
@@ -2931,9 +3043,13 @@ void main(int argc, char **argv)
 	RAIN = GL_FALSE;
 	SNOW = GL_FALSE;
 	HAIL = GL_FALSE;
-
 	
-	//getPercursoHttp();
+	
+	getPercursoHttp();
+
+	modelo.objeto.pos.x = nos[0].x * 5;
+	modelo.objeto.pos.y = nos[0].y * 5;
+	modelo.objeto.pos.z = (nos[0].z + OBJECTO_ALTURA * 0.5) * 5;
 	//testeHttp();
 	imprime_ajuda();
 
