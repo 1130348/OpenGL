@@ -76,6 +76,8 @@ typedef struct {
 #pragma comment (lib,"glaux.lib")
 extern "C" int read_JPEG_file(const char *, char **, int *, int *, int *);
 
+void static getPercursoHttp();
+
 
 const GLfloat mat_ambient[][4] = {{0.33, 0.22, 0.03, 1.0},	// brass
 								  {0.0, 0.0, 0.0},			// red plastic
@@ -177,6 +179,7 @@ typedef struct Modelo {
 	objecto_t  objeto;
 }Modelo;
 
+string login;
 Estado estado;
 Modelo modelo;
 string nomePOI = "";
@@ -295,7 +298,7 @@ void initParticles(int i) {
 	int posXModelo = modelo.objeto.pos.x;
 	int posYModelo = modelo.objeto.pos.y;
 	
-	par_sys[i].xpos = (posXModelo -20) + (rand() % (int)((20 + posXModelo) - (posXModelo - 20) + 1));
+	par_sys[i].xpos = (posXModelo - 20) + (rand() % (int)((20 + posXModelo) - (posXModelo - 20) + 1) - 30);
 	par_sys[i].ypos = 20.0;
 	par_sys[i].zpos = (posYModelo - 20) + (rand() % (int)((20 + posYModelo) - (posYModelo - 20) + 1))+40;
 
@@ -523,6 +526,8 @@ void myInit(int janela)
 // For Hail
 void drawHail() {
 	glPushMatrix();
+	glTranslated(nos[0].x * 5, nos[0].y * 5, 20);
+
 	float x, y, z;
 
 	for (loop = 0; loop < MAX_PARTICLES; loop = loop + 2) {
@@ -589,6 +594,8 @@ void drawHail() {
 // For Snow
 void drawSnow() {
 	glPushMatrix();
+	glTranslated(nos[0].x * 5, nos[0].y * 5, 20);
+
 	float x, y, z;
 	for (loop = 0; loop < 100; loop = loop + 2) {
 		if (par_sys[loop].alive == true) {
@@ -633,6 +640,7 @@ void drawSnow() {
 
 void drawRain() {
 	glPushMatrix();
+	glTranslated(nos[0].x * 5, nos[0].y * 5, 20);
 	float x, y, z;
 	for (loop = 0; loop < MAX_PARTICLES; loop = loop + 2) {
 		if (par_sys[loop].alive == true) {
@@ -1368,7 +1376,7 @@ void skybox() {
 	//tamanho da skybox
 	float tamanhoSky;
 	if (getMax()==0) {
-		tamanhoSky = 100;
+		tamanhoSky = 150;
 	}
 	else {
 		tamanhoSky = (getMax()+ getMax()/2)*5+50;
@@ -1480,6 +1488,12 @@ void desenhaEixos(){
 			glPopMatrix();
 		glPopName();
 	glPopMatrix();
+}
+
+void spamModel() {
+	modelo.objeto.pos.x = nos[0].x * 5;
+	modelo.objeto.pos.y = nos[0].y * 5;
+	modelo.objeto.pos.z = (nos[0].z + OBJECTO_ALTURA * 0.5) * 5;
 }
 
 void setCamera(Camera *cam, objecto_t obj) {
@@ -1777,11 +1791,13 @@ void keyboard(unsigned char key, int x, int y)
 		case 'Q':
 				printf("Insira Nome de Utilizador:");
 				cin >> nome;
+				login = nome;
 				glutPostRedisplay();
 				break;
 		case 'r':
 		case 'R':
 				printf("Reloading...");
+				getPercursoHttp();
 				glutPostRedisplay();
 				break;
 		case 'y':
@@ -2209,341 +2225,359 @@ void static getPercursoHttp() {
 		unsigned first = resposta.find("{");
 		unsigned last = resposta.find_last_of("}]");
 		string novaRes = resposta.substr(first, last - first);
-		
+
 
 		vector<string> vectt;
 		split(novaRes, vectt, '}');
-
+		int countL = 0;
 		for (vector<string>::iterator it = vectt.begin(); it != vectt.end(); ++it) {
 			string op = *it;
 			replace(op.begin(), op.end(), '"', ' ');
 			replace(op.begin(), op.end(), '{', ' ');
 			replace(op.begin(), op.end(), '}', ' ');
 			replace(op.begin(), op.end(), ',', '\n');
-			cout << "----------------------\n";
-			cout << op << "\n";
+
+			if (op.find(login) != std::string::npos) {
+				countL++;
+				cout << "----------------------\n";
+				cout << op << "\n";
+			}
+
 			*it = op;
 
 		}
 
-		string escolha;
-		cout << "Qual a visita pretendida?\n";
-		cin >> escolha;
-		string numP;
+		if (countL == 0) {
+			cout << "You need to Login.";
+		}
+		else {
+			string escolha;
+			cout << "Qual a visita pretendida?\n";
+			cin >> escolha;
+			string numP;
 
-		for (vector<string>::iterator it = vectt.begin(); it != vectt.end(); ++it) {
-			string op = *it;
-			
-			string vis = "idVisita :" + escolha;
-			if (op.find(vis) != std::string::npos) {
-		
-			
+			for (vector<string>::iterator it = vectt.begin(); it != vectt.end(); ++it) {
+				string op = *it;
 
-				vector<string> vectV;
-				split(op, vectV, '\n');
-				
-				string dataVisita=vectV.at(1);
-				string descricaoVisita = vectV.at(2);
-				string horaInicioVisita = vectV.at(3);
-				string idPercurso= vectV.at(4);
-				string idUser= vectV.at(5);
-				string idVisita= vectV.at(6);
+				string vis = "idVisita :" + escolha;
+				if (op.find(vis) != std::string::npos) {
 
 
-				first = dataVisita.find(":");
-				last = dataVisita.find_last_of(",");
-				string novaDataV = dataVisita.substr(first, last - first);
-				replace(novaDataV.begin(), novaDataV.end(), '"', ' ');
-				replace(novaDataV.begin(), novaDataV.end(), ':', ' ');
-				visita.visitaId = atoi(novaDataV.c_str());
+
+					vector<string> vectV;
+					split(op, vectV, '\n');
+
+					string dataVisita = vectV.at(1);
+					string descricaoVisita = vectV.at(2);
+					string horaInicioVisita = vectV.at(3);
+					string idPercurso = vectV.at(4);
+					string idUser = vectV.at(5);
+					string idVisita = vectV.at(6);
 
 
-				first = descricaoVisita.find(":");
-				last = descricaoVisita.find_last_of(",");
-				string novaDescricaoV = descricaoVisita.substr(first, last - first);
-				replace(novaDescricaoV.begin(), novaDescricaoV.end(), '"', ' ');
-				replace(novaDescricaoV.begin(), novaDescricaoV.end(), ':', ' ');
-				visita.data = novaDescricaoV;
-
-				first = horaInicioVisita.find(":");
-				last = horaInicioVisita.find_last_of(",");
-				string novoHorario = horaInicioVisita.substr(first, last - first);
-				replace(novoHorario.begin(), novoHorario.end(), '"', ' ');
-				replace(novoHorario.begin(), novoHorario.end(), ':', ' ');
-				visita.descricao= novoHorario;
+					first = dataVisita.find(":");
+					last = dataVisita.find_last_of(",");
+					string novaDataV = dataVisita.substr(first, last - first);
+					replace(novaDataV.begin(), novaDataV.end(), '"', ' ');
+					replace(novaDataV.begin(), novaDataV.end(), ':', ' ');
+					visita.visitaId = atoi(novaDataV.c_str());
 
 
-				first = idPercurso.find(":");
-				last = idPercurso.find_last_of(",");
-				string novoIDPercurso = idPercurso.substr(first, last - first);
-				replace(novoIDPercurso.begin(), novoIDPercurso.end(), '"', ' ');
-				novoIDPercurso.erase(0,1);
-				//replace(novoIDPercurso.begin(), novoIDPercurso.end(), ':', ' ');
-				visita.horaInicio=novoIDPercurso;
+					first = descricaoVisita.find(":");
+					last = descricaoVisita.find_last_of(",");
+					string novaDescricaoV = descricaoVisita.substr(first, last - first);
+					replace(novaDescricaoV.begin(), novaDescricaoV.end(), '"', ' ');
+					replace(novaDescricaoV.begin(), novaDescricaoV.end(), ':', ' ');
+					visita.data = novaDescricaoV;
+
+					first = horaInicioVisita.find(":");
+					last = horaInicioVisita.find_last_of(",");
+					string novoHorario = horaInicioVisita.substr(first, last - first);
+					replace(novoHorario.begin(), novoHorario.end(), '"', ' ');
+					replace(novoHorario.begin(), novoHorario.end(), ':', ' ');
+					visita.descricao = novoHorario;
 
 
-				first = idUser.find(":");
-				last = idUser.find_last_of(",");
-				string novoIDUser = idUser.substr(first, last - first);
-				replace(novoIDUser.begin(), novoIDUser.end(), '"', ' ');
-				replace(novoIDUser.begin(), novoIDUser.end(), ':', ' ');
-				replace(novoIDUser.begin(), novoIDUser.end(), '\n', ' ');
-				visita.percursoId=atoi(novoIDUser.c_str());
-				novoIDUser.erase(0,1);
-				numP = novoIDUser;
+					first = idPercurso.find(":");
+					last = idPercurso.find_last_of(",");
+					string novoIDPercurso = idPercurso.substr(first, last - first);
+					replace(novoIDPercurso.begin(), novoIDPercurso.end(), '"', ' ');
+					novoIDPercurso.erase(0, 1);
+					//replace(novoIDPercurso.begin(), novoIDPercurso.end(), ':', ' ');
+					visita.horaInicio = novoIDPercurso;
 
 
-				first = idVisita.find(":");
-				last = idVisita.find_last_of(",");
-				string novoIDVisita = idVisita.substr(first, last - first);
-				replace(novoIDVisita.begin(), novoIDVisita.end(), '"', ' ');
-				replace(novoIDVisita.begin(), novoIDVisita.end(), ':', ' ');
-				visita.UserId = atoi(novoIDVisita.c_str());
-				
+					first = idUser.find(":");
+					last = idUser.find_last_of(",");
+					string novoIDUser = idUser.substr(first, last - first);
+					replace(novoIDUser.begin(), novoIDUser.end(), '"', ' ');
+					replace(novoIDUser.begin(), novoIDUser.end(), ':', ' ');
+					replace(novoIDUser.begin(), novoIDUser.end(), '\n', ' ');
+					visita.percursoId = atoi(novoIDUser.c_str());
+					novoIDUser.erase(0, 1);
+					numP = novoIDUser;
+
+
+					first = idVisita.find(":");
+					last = idVisita.find_last_of(",");
+					string novoIDVisita = idVisita.substr(first, last - first);
+					replace(novoIDVisita.begin(), novoIDVisita.end(), '"', ' ');
+					replace(novoIDVisita.begin(), novoIDVisita.end(), ':', ' ');
+					visita.UserId = atoi(novoIDVisita.c_str());
+
+
+				}
 
 			}
 
-		}
-		
-		//Set the host,uri and headers
-
-		r.setHost("localhost");
-		string ur = "/api/percursoes/" + numP;
-	
-		r.setUri(ur);
-		r.addHeader("Connection: close");
-
-		//Build the request
-		r.buildRequest();
-		printf(r.toString().c_str());
-		//Create the client
-		httpClient *cl = new httpClient();
-		//Send the request
-
-		cl->sendRequest(r);
-		//Get the Response
-
-		resposta = cl->getResponse().c_str();
-
-		if (resposta.find("404 Not Found") == std::string::npos) {
-
-
-			first = resposta.find("{");
-			last = resposta.find_last_of("}]");
-			novaRes = resposta.substr(first, last - first);
-
-
-			vector<string> vect;
-			split(novaRes, vect, '[');
-
-			string res = vect.at(0);
-			string pois = vect.at(1);
-			split(res, vect, ',');
-			string id = vect.at(0);
-			string nome = vect.at(1);
-			string descricao = vect.at(2);;
-
-
-			first = id.find(":");
-			last = id.find_last_of(",");
-			string novoID = id.substr(first, last - first);
-			replace(novoID.begin(), novoID.end(), ':', ' ');
-
-			first = nome.find(":");
-			last = nome.find_last_of(",");
-			string novoNome = nome.substr(first, last - first);
-			replace(novoNome.begin(), novoNome.end(), ':', ' ');
-			replace(novoNome.begin(), novoNome.end(), '"', ' ');
-
-			first = descricao.find(":");
-			last = descricao.find_last_of(",");
-			string novaDescricao = descricao.substr(first, last - first);
-			replace(novaDescricao.begin(), novaDescricao.end(), ':', ' ');
-
-
-			replace(pois.begin(), pois.end(), ']', ' ');
-			
-			visita.rota.id = atoi(novoID.c_str());
-			visita.rota.descricao = novaDescricao;
-			visita.rota.nome = novoNome;
 
 			//Set the host,uri and headers
 
-			vector<string> lista;
-			split(pois, lista, ',');
-			
-			string latitude;
-			string localID;
-			string longitude;
-			string nomeLocal;
-			int numP = 0;
-			int soma = 0;
-			for (vector<string>::iterator it = lista.begin(); it != lista.end(); ++it) {
-				soma++;
-				r.setHost("localhost");
-				string num = *it;
-				replace(num.begin(), num.end(), ',', ' ');
-				string uri = "/api/pois/" + num;
+			r.setHost("localhost");
+			string ur = "/api/percursoes/" + numP;
 
-				r.setUri(uri);
-				r.addHeader("Connection: close");
+			r.setUri(ur);
+			r.addHeader("Connection: close");
 
-				//Build the request
-				r.buildRequest();
-				//Create the client
-				httpClient *cl2 = new httpClient();
-				//Send the request
+			//Build the request
+			r.buildRequest();
+			printf(r.toString().c_str());
+			//Create the client
+			httpClient *cl = new httpClient();
+			//Send the request
 
-				cl2->sendRequest(r);
+			cl->sendRequest(r);
+			//Get the Response
 
-				resposta = cl2->getResponse().c_str();
+			resposta = cl->getResponse().c_str();
 
-				if (resposta.find("404 Not Found") == std::string::npos) {
+			if (resposta.find("404 Not Found") == std::string::npos) {
 
 
-					first = resposta.find("{");
-					last = resposta.find_last_of("}]");
-					novaRes = resposta.substr(first, last - first);
+				first = resposta.find("{");
+				last = resposta.find_last_of("}]");
+				novaRes = resposta.substr(first, last - first);
 
 
-					vector<string> vect2;
-					split(novaRes, vect2, ',');
+				vector<string> vect;
+				split(novaRes, vect, '[');
 
-					id = vect2.at(0);
-					nome = vect2.at(1);
-					descricao = vect2.at(2);
-					pois = vect2.at(3);
-					string descricao2 = vect2.at(4);
-					string duracaoVisita = vect2.at(5);
-
-
-					first = id.find(":");
-					last = id.find_last_of(",");
-					novoID = id.substr(first, last - first);
-					replace(novoID.begin(), novoID.end(), ':', ' ');
-					replace(novoID.begin(), novoID.end(), '"', ' ');
-
-					first = nome.find(":");
-					last = nome.find_last_of(",");
-					novoNome = nome.substr(first, last - first);
-					replace(novoNome.begin(), novoNome.end(), ':', ' ');
-					replace(novoNome.begin(), novoNome.end(), '"', ' ');
-
-					first = descricao.find(":");
-					last = descricao.find_last_of(",");
-					novaDescricao = descricao.substr(first, last - first);
-					replace(novaDescricao.begin(), novaDescricao.end(), ':', ' ');
-
-					first = pois.find(":");
-					last = pois.find_last_of(",");
-					string novoPois = pois.substr(first, last - first);
-					replace(novoPois.begin(), novoPois.end(), ':', ' ');
-					replace(novoPois.begin(), novoPois.end(), '"', ' ');
-
-					first = descricao2.find(":");
-					last = descricao2.find_last_of(",");
-					string novaDescricao2 = descricao2.substr(first, last - first);
-					replace(novaDescricao2.begin(), novaDescricao2.end(), ':', ' ');
-					replace(novaDescricao2.begin(), novaDescricao2.end(), '"', ' ');
-
-					first = duracaoVisita.find(":");
-					last = duracaoVisita.find_last_of(",");
-					string novaDuracao = duracaoVisita.substr(first, last - first);
-					replace(novaDuracao.begin(), novaDuracao.end(), ':', ' ');
-					replace(novaDuracao.begin(), novaDuracao.end(), '"', ' ');
+				string res = vect.at(0);
+				string pois = vect.at(1);
+				split(res, vect, ',');
+				string id = vect.at(0);
+				string nome = vect.at(1);
+				string descricao = vect.at(2);;
 
 
+				first = id.find(":");
+				last = id.find_last_of(",");
+				string novoID = id.substr(first, last - first);
+				replace(novoID.begin(), novoID.end(), ':', ' ');
+
+				first = nome.find(":");
+				last = nome.find_last_of(",");
+				string novoNome = nome.substr(first, last - first);
+				replace(novoNome.begin(), novoNome.end(), ':', ' ');
+				replace(novoNome.begin(), novoNome.end(), '"', ' ');
+
+				first = descricao.find(":");
+				last = descricao.find_last_of(",");
+				string novaDescricao = descricao.substr(first, last - first);
+				replace(novaDescricao.begin(), novaDescricao.end(), ':', ' ');
+
+
+				replace(pois.begin(), pois.end(), ']', ' ');
+
+				visita.rota.id = atoi(novoID.c_str());
+				visita.rota.descricao = novaDescricao;
+				visita.rota.nome = novoNome;
+
+				//Set the host,uri and headers
+
+				vector<string> lista;
+				split(pois, lista, ',');
+
+				string latitude;
+				string localID;
+				string longitude;
+				string nomeLocal;
+				int numP = 0;
+				int soma = 0;
+				for (vector<string>::iterator it = lista.begin(); it != lista.end(); ++it) {
+					soma++;
 					r.setHost("localhost");
-				
-					std::string::iterator end_pos = std::remove(novaDescricao.begin(), novaDescricao.end(), ' ');
-					novaDescricao.erase(end_pos, novaDescricao.end());
-					novoID.erase(0, 1);
-					ur = "/api/locals/" + novoID;
-				
+					string num = *it;
+					replace(num.begin(), num.end(), ',', ' ');
+					string uri = "/api/pois/" + num;
 
-					r.setUri(ur);
+					r.setUri(uri);
 					r.addHeader("Connection: close");
 
 					//Build the request
 					r.buildRequest();
-					printf(r.toString().c_str());
 					//Create the client
-					httpClient *clLocal = new httpClient();
+					httpClient *cl2 = new httpClient();
 					//Send the request
 
-					clLocal->sendRequest(r);
-					//Get the Response
+					cl2->sendRequest(r);
 
-					resposta = clLocal->getResponse().c_str();
+					resposta = cl2->getResponse().c_str();
 
 					if (resposta.find("404 Not Found") == std::string::npos) {
-						
+
+
 						first = resposta.find("{");
 						last = resposta.find_last_of("}]");
 						novaRes = resposta.substr(first, last - first);
 
 
-						vector<string> vectL;
-						split(novaRes, vectL, ',');
+						vector<string> vect2;
+						split(novaRes, vect2, ',');
 
-						latitude = vectL.at(0);
-						localID = vectL.at(1);
-						longitude = vectL.at(2);
-						nomeLocal = vectL.at(3);
-
-						first = latitude.find(":");
-						last = latitude.find_last_of(",");
-						string novaLatitude = latitude.substr(first, last - first);
-						replace(novaLatitude.begin(), novaLatitude.end(), ':', ' ');
-						replace(novaLatitude.begin(), novaLatitude.end(), '"', ' ');
-
-						first = localID.find(":");
-						last = localID.find_last_of(",");
-						string novoLocal = localID.substr(first, last - first);
-						replace(novoLocal.begin(), novoLocal.end(), ':', ' ');
-						replace(novoLocal.begin(), novoLocal.end(), '"', ' ');
+						id = vect2.at(0);
+						nome = vect2.at(1);
+						descricao = vect2.at(2);
+						pois = vect2.at(3);
+						string descricao2 = vect2.at(4);
+						string duracaoVisita = vect2.at(5);
 
 
-						first = longitude.find(":");
-						last = longitude.find_last_of(",");
-						string novaLongitude = longitude.substr(first, last - first);
-						replace(novaLongitude.begin(), novaLongitude.end(), ':', ' ');
-						replace(novaLongitude.begin(), novaLongitude.end(), '"', ' ');
+						first = id.find(":");
+						last = id.find_last_of(",");
+						novoID = id.substr(first, last - first);
+						replace(novoID.begin(), novoID.end(), ':', ' ');
+						replace(novoID.begin(), novoID.end(), '"', ' ');
 
-						first = nomeLocal.find(":");
-						last = nomeLocal.find_last_of(",");
-						string novoNomeL = nomeLocal.substr(first, last - first);
-						replace(novoNomeL.begin(), novoNomeL.end(), ':', ' ');
-						replace(novoNomeL.begin(), novoNomeL.end(), '"', ' ');
-					
-						Poi a;
-						a.categoria = novoNome;
-						a.localId = novoID;
-						a.id = atoi(novaDescricao.c_str());
-						a.nome = novoPois;
-						a.descricao = novaDescricao2;
-						a.duracaoVisita = atoi(novaDuracao.c_str());
-						a.nomeLocal = novoLocal;
-						a.x = 5 * soma;//stof(novaLongitude)/10+ rand() % 10+ -10; 
+						first = nome.find(":");
+						last = nome.find_last_of(",");
+						novoNome = nome.substr(first, last - first);
+						replace(novoNome.begin(), novoNome.end(), ':', ' ');
+						replace(novoNome.begin(), novoNome.end(), '"', ' ');
+
+						first = descricao.find(":");
+						last = descricao.find_last_of(",");
+						novaDescricao = descricao.substr(first, last - first);
+						replace(novaDescricao.begin(), novaDescricao.end(), ':', ' ');
+
+						first = pois.find(":");
+						last = pois.find_last_of(",");
+						string novoPois = pois.substr(first, last - first);
+						replace(novoPois.begin(), novoPois.end(), ':', ' ');
+						replace(novoPois.begin(), novoPois.end(), '"', ' ');
+
+						first = descricao2.find(":");
+						last = descricao2.find_last_of(",");
+						string novaDescricao2 = descricao2.substr(first, last - first);
+						replace(novaDescricao2.begin(), novaDescricao2.end(), ':', ' ');
+						replace(novaDescricao2.begin(), novaDescricao2.end(), '"', ' ');
+
+						first = duracaoVisita.find(":");
+						last = duracaoVisita.find_last_of(",");
+						string novaDuracao = duracaoVisita.substr(first, last - first);
+						replace(novaDuracao.begin(), novaDuracao.end(), ':', ' ');
+						replace(novaDuracao.begin(), novaDuracao.end(), '"', ' ');
+
+
+						r.setHost("localhost");
+
+						std::string::iterator end_pos = std::remove(novaDescricao.begin(), novaDescricao.end(), ' ');
+						novaDescricao.erase(end_pos, novaDescricao.end());
+						novoID.erase(0, 1);
+						ur = "/api/locals/" + novoID;
+
+
+						r.setUri(ur);
+						r.addHeader("Connection: close");
+
+						//Build the request
+						r.buildRequest();
+						printf(r.toString().c_str());
+						//Create the client
+						httpClient *clLocal = new httpClient();
+						//Send the request
+
+						clLocal->sendRequest(r);
+						//Get the Response
+
+						resposta = clLocal->getResponse().c_str();
+
+						if (resposta.find("404 Not Found") == std::string::npos) {
+
+							first = resposta.find("{");
+							last = resposta.find_last_of("}]");
+							novaRes = resposta.substr(first, last - first);
+
+
+							vector<string> vectL;
+							split(novaRes, vectL, ',');
+
+							latitude = vectL.at(0);
+							localID = vectL.at(1);
+							longitude = vectL.at(2);
+							nomeLocal = vectL.at(3);
+
+							first = latitude.find(":");
+							last = latitude.find_last_of(",");
+							string novaLatitude = latitude.substr(first, last - first);
+							replace(novaLatitude.begin(), novaLatitude.end(), ':', ' ');
+							replace(novaLatitude.begin(), novaLatitude.end(), '"', ' ');
+
+							first = localID.find(":");
+							last = localID.find_last_of(",");
+							string novoLocal = localID.substr(first, last - first);
+							replace(novoLocal.begin(), novoLocal.end(), ':', ' ');
+							replace(novoLocal.begin(), novoLocal.end(), '"', ' ');
+
+
+							first = longitude.find(":");
+							last = longitude.find_last_of(",");
+							string novaLongitude = longitude.substr(first, last - first);
+							replace(novaLongitude.begin(), novaLongitude.end(), ':', ' ');
+							replace(novaLongitude.begin(), novaLongitude.end(), '"', ' ');
+
+							first = nomeLocal.find(":");
+							last = nomeLocal.find_last_of(",");
+							string novoNomeL = nomeLocal.substr(first, last - first);
+							replace(novoNomeL.begin(), novoNomeL.end(), ':', ' ');
+							replace(novoNomeL.begin(), novoNomeL.end(), '"', ' ');
+
+							Poi a;
+							a.categoria = novoNome;
+							a.localId = novoID;
+							a.id = atoi(novaDescricao.c_str());
+							a.nome = novoPois;
+							a.descricao = novaDescricao2;
+							a.duracaoVisita = atoi(novaDuracao.c_str());
+							a.nomeLocal = novoLocal;
+							a.x = 5 * soma;//stof(novaLongitude)/10+ rand() % 10+ -10; 
 							a.y = 0 * soma;//stof(novoNomeL)/10 + rand() % 10 + -10;
 
 
-						Arco b;
-						
-						if (numP<lista.size()) {
-							b.noi = numP;
-							numP++;
-							b.nof = numP;
-							
-							b.largura = 2;
-							b.peso = 1;
-							ligacoes.push_back(b);
+							Arco b;
+
+							if (numP < lista.size()) {
+								b.noi = numP;
+								numP++;
+								b.nof = numP;
+
+								b.largura = 2;
+								b.peso = 1;
+								ligacoes.push_back(b);
+							}
+
+
+
+
+							visita.rota.pois.push_back(a);
+
 						}
-						
-						
+						else {
+							cout << "Pagina Nao Existe";
+							leGrafo();
+						}
 
 
-						visita.rota.pois.push_back(a);
 
 					}
 					else {
@@ -2551,36 +2585,30 @@ void static getPercursoHttp() {
 						leGrafo();
 					}
 
-
-					
-				}
-				else {
-					cout << "Pagina Nao Existe";
-					leGrafo();
 				}
 
-			}
 
-		
-			cout << "\nVisita: " << visita.descricao << "Data: " << visita.data << "Horario: " << visita.horaInicio << "ID Percurso: " << visita.percursoId << "\nID User: " << visita.UserId << "\nId Visita: " << visita.visitaId << "\n";
-			cout << "\nRota :\n" << "Id: " << visita.rota.id << "\nNome: " << visita.rota.nome << "\nDescricao: " << visita.rota.descricao << "\n";
-			cout << "Pois:\n";
-			for (vector<Poi>::iterator it = visita.rota.pois.begin(); it != visita.rota.pois.end(); ++it) {
-				cout << "Id: " << it->id << "\nNome: " << it->nome << "\nDescricao: " << it->descricao << "\nDuracao: " << it->duracaoVisita << "\nCategoria: " << it->categoria << "\nLocalID: " << it->localId <<"\nX: "<<it->x<<"\nY: "<<it->y<<"\nNome: "<<it->nomeLocal<<"\n" ;
-				cout << "--------------------\n";
-			}
-			
-			
-			
-			int numArcos=visita.rota.pois.size()-1;
-			int numNos = visita.rota.pois.size();
-			leGrafoHTTP(numNos,numArcos,visita.rota.pois,ligacoes);
-			//leGrafo();
-			
+				cout << "\nVisita: " << visita.descricao << "Data: " << visita.data << "Horario: " << visita.horaInicio << "ID Percurso: " << visita.percursoId << "\nID User: " << visita.UserId << "\nId Visita: " << visita.visitaId << "\n";
+				cout << "\nRota :\n" << "Id: " << visita.rota.id << "\nNome: " << visita.rota.nome << "\nDescricao: " << visita.rota.descricao << "\n";
+				cout << "Pois:\n";
+				for (vector<Poi>::iterator it = visita.rota.pois.begin(); it != visita.rota.pois.end(); ++it) {
+					cout << "Id: " << it->id << "\nNome: " << it->nome << "\nDescricao: " << it->descricao << "\nDuracao: " << it->duracaoVisita << "\nCategoria: " << it->categoria << "\nLocalID: " << it->localId << "\nX: " << it->x << "\nY: " << it->y << "\nNome: " << it->nomeLocal << "\n";
+					cout << "--------------------\n";
+				}
 
-		}
-		else {
-			cout << "Pagina Nao Existe";
+
+
+				int numArcos = visita.rota.pois.size() - 1;
+				int numNos = visita.rota.pois.size();
+				leGrafoHTTP(numNos, numArcos, visita.rota.pois, ligacoes);
+				spamModel();
+				//leGrafo();
+
+
+			}
+			else {
+				cout << "Pagina Nao Existe";
+			}
 		}
 	}
 else {
@@ -2814,7 +2842,11 @@ GLboolean detectaColisao(GLfloat nx, GLfloat ny, GLfloat nz)
 					{
 						nosVisitados[i] = 1;
 					}
-					printNomePOI(nos[i].idPOI);
+					//printNomePOI(nos[i].idPOI);
+					if (visita.rota.id != 0) {
+						atual = visita.rota.pois.at(i);
+					}
+
 					return true;
 				}
 
@@ -3026,13 +3058,12 @@ void main(int argc, char **argv)
 	RAIN = GL_FALSE;
 	SNOW = GL_FALSE;
 	HAIL = GL_FALSE;
-	
-	
-	getPercursoHttp();
+	login = "Default";
 
-	modelo.objeto.pos.x = nos[0].x * 5;
-	modelo.objeto.pos.y = nos[0].y * 5;
-	modelo.objeto.pos.z = (nos[0].z + OBJECTO_ALTURA * 0.5) * 5;
+	
+	//getPercursoHttp();
+
+	spamModel();
 	//testeHttp();
 	imprime_ajuda();
 
