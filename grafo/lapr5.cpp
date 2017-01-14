@@ -1492,24 +1492,24 @@ void setCamera(Camera *cam, objecto_t obj) {
 	{
 		cam->eye.x = obj.pos.x;
 		cam->eye.y = obj.pos.y;
-		cam->eye.z = obj.pos.z + 7;
+		cam->eye.z = obj.pos.z + 8;
 
 		float x, y, z;
 		x = obj.pos.x + cos(modelo.objeto.dir)* cos(estado.camera.dir_lat);
 		y = obj.pos.y + sin(modelo.objeto.dir)* cos(estado.camera.dir_lat);
-		z = obj.pos.z + 6.5;
+		z = obj.pos.z + 7.5;
 		gluLookAt(cam->eye.x, cam->eye.y, cam->eye.z, x, y, z, 0, 0, 1);
 		putLights((GLfloat*)white_light);
 	}
 	else {
 
-		if (estado.light) {
-			gluLookAt(eye[0], eye[1], eye[2], estado.camera.center[0], estado.camera.center[1], estado.camera.center[2], 0, 0, 1);
+		if (estado.light) {			
+			gluLookAt(eye[0], eye[1], eye[2], modelo.objeto.pos.x, modelo.objeto.pos.y, modelo.objeto.pos.z, 0, 0, 1);
 			putLights((GLfloat*)white_light);
 		}
 		else {
 			putLights((GLfloat*)white_light);
-			gluLookAt(eye[0], eye[1], eye[2], estado.camera.center[0], estado.camera.center[1], estado.camera.center[2], 0, 0, 1);
+			gluLookAt(eye[0], eye[1], eye[2], modelo.objeto.pos.x, modelo.objeto.pos.y, modelo.objeto.pos.z, 0, 0, 1);
 		}
 	}
 }

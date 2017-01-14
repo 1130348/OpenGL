@@ -1,22 +1,4 @@
-﻿  studio_utils.cpp
-  studio_render.cpp
-  Model_3DS.cpp
-  c:\users\diogo\desktop\lapr5_2016_17_g5029_sgrai\grafo\model_3ds.cpp(78) : You need to uncomment this if you are using MFC
-  
-  mdlviewer.cpp
-  math.cpp
-  lapr5.cpp
+﻿  lapr5.cpp
 c:\users\diogo\desktop\lapr5_2016_17_g5029_sgrai\grafo\lapr5.cpp(2533): warning C4018: '<': signed/unsigned mismatch
-  httpRequest.cpp
-c:\users\diogo\desktop\lapr5_2016_17_g5029_sgrai\grafo\httprequest.cpp(21): warning C4018: '<': signed/unsigned mismatch
-  httpClient.cpp
-c:\users\diogo\desktop\lapr5_2016_17_g5029_sgrai\grafo\httpclient.cpp(12): warning C4068: unknown pragma
-  grafos.cpp
-c:\users\diogo\desktop\lapr5_2016_17_g5029_sgrai\grafo\grafos.cpp(136): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-c:\users\diogo\desktop\lapr5_2016_17_g5029_sgrai\grafo\grafos.cpp(137): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-  GLTexture.cpp
-  Generating Code...
-  readjpeg.c
-  LINK : C:\Users\diogo\Desktop\lapr5_2016_17_g5029_sgrai\grafo\Debug\Lapr5.exe not found or not built by the last incremental link; performing full link
   Lapr5.vcxproj -> C:\Users\diogo\Desktop\lapr5_2016_17_g5029_sgrai\grafo\Debug\Lapr5.exe
   Lapr5.vcxproj -> C:\Users\diogo\Desktop\lapr5_2016_17_g5029_sgrai\grafo\Debug\Lapr5.pdb (Full PDB)
