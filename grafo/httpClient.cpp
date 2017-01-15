@@ -59,12 +59,13 @@ void httpClient::connectTo(std::string ip)
 		break;
 	}
 
-	//freeaddrinfo(result);
+	freeaddrinfo(result);
 
 	if (this->connectSocket == INVALID_SOCKET) {
 		std::cout << "Unable to connect to server!\n";
 		WSACleanup();
 		exit(0);
+		
 	}
 
 }

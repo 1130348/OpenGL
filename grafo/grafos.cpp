@@ -126,6 +126,13 @@ void leGrafo(){
 	}		
 }
 
+float RandomFloat(float a, float b) {
+	float random = ((float)rand()) / (float)RAND_MAX;
+	float diff = b - a;
+	float r = random * diff;
+	return a + r;
+}
+
 void leGrafoHTTP(int numNosH, int numArcosH, vector<Poi> pois, vector<Arco> arcosf) {
 
 	numNos = numNosH;
@@ -133,7 +140,7 @@ void leGrafoHTTP(int numNosH, int numArcosH, vector<Poi> pois, vector<Arco> arco
 	for (int i = 0; i < numNos; i++) {
 		nos[i].x = pois.at(i).x;
 		nos[i].y = pois.at(i).y;
-		nos[i].z = rand() % 5 + 1;
+		nos[i].z = RandomFloat(1,3);;
 		nos[i].idPOI= pois.at(i).id;
 	}
 

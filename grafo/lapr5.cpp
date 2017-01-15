@@ -77,6 +77,7 @@ typedef struct {
 extern "C" int read_JPEG_file(const char *, char **, int *, int *, int *);
 
 void static getPercursoHttp();
+void printNomePOI(int);
 
 
 const GLfloat mat_ambient[][4] = {{0.33, 0.22, 0.03, 1.0},	// brass
@@ -298,7 +299,7 @@ void initParticles(int i) {
 	int posXModelo = modelo.objeto.pos.x;
 	int posYModelo = modelo.objeto.pos.y;
 	
-	par_sys[i].xpos = (posXModelo - 20) + (rand() % (int)((20 + posXModelo) - (posXModelo - 20) + 1) - 30);
+	par_sys[i].xpos = (posXModelo - 20) + (rand() % (int)((20 + posXModelo) - (posXModelo - 20) + 1));
 	par_sys[i].ypos = 20.0;
 	par_sys[i].zpos = (posYModelo - 20) + (rand() % (int)((20 + posYModelo) - (posYModelo - 20) + 1))+40;
 
@@ -526,7 +527,7 @@ void myInit(int janela)
 // For Hail
 void drawHail() {
 	glPushMatrix();
-	glTranslated(nos[0].x * 5, nos[0].y * 5, 20);
+	//glTranslated(modelo.objeto.pos.x, modelo.objeto.pos.y, 20);
 
 	float x, y, z;
 
@@ -594,7 +595,7 @@ void drawHail() {
 // For Snow
 void drawSnow() {
 	glPushMatrix();
-	glTranslated(nos[0].x * 5, nos[0].y * 5, 20);
+	//glTranslated(nos[0].x * 5, nos[0].y , 20);
 
 	float x, y, z;
 	for (loop = 0; loop < 100; loop = loop + 2) {
@@ -604,7 +605,7 @@ void drawSnow() {
 			z = par_sys[loop].ypos;
 
 			// Draw particles
-			glColor3f(1.0, 1.0, 1.0);
+			//glColor3f(1.0, 1.0, 1.0);
 			glPushMatrix();
 			glTranslatef(x, y, z);
 			glutSolidSphere(0.2, 16, 16);
@@ -617,7 +618,7 @@ void drawSnow() {
 			// Decay
 			par_sys[loop].life -= par_sys[loop].fade;
 
-			if (par_sys[loop].ypos <= -10) {
+		/*	if (par_sys[loop].ypos <= -10) {
 				int zi = z - zoom + 10;
 				int xi = x + 10;
 				ground_colors[zi][xi][0] = 1.0;
@@ -627,7 +628,7 @@ void drawSnow() {
 					ground_points[xi][zi][1] += 0.1;
 				}
 				par_sys[loop].life = -1.0;
-			}
+			}*/
 
 			//Revive 
 			if (par_sys[loop].life < 0.0) {
@@ -640,7 +641,7 @@ void drawSnow() {
 
 void drawRain() {
 	glPushMatrix();
-	glTranslated(nos[0].x * 5, nos[0].y * 5, 20);
+	//glTranslated(nos[0].x * 5, nos[0].y, 20);
 	float x, y, z;
 	for (loop = 0; loop < MAX_PARTICLES; loop = loop + 2) {
 		if (par_sys[loop].alive == true) {
@@ -906,7 +907,7 @@ void printVisita() {
 
 	//glDisable(GL_TEXTURE_2D);
 	//glDisable(GL_LIGHTING);
-	glColor3f(0,0,0);
+	
 	printtext(400, 480, "VisitaID: "+to_string(visita.visitaId));
 	printtext(400, 460, "UserID: "+to_string(visita.UserId));
 	printtext(400, 440, "Descricao: "+visita.descricao);
@@ -1382,28 +1383,28 @@ void skybox() {
 		tamanhoSky = (getMax()+ getMax()/2)*5+50;
 	}
 	 
-	int i = weather;
+	
 	// Render the front quad
 
 	
 
-	glBindTexture(GL_TEXTURE_2D, texture[4 + (i * 6)]);
+	glBindTexture(GL_TEXTURE_2D, texture[4 + (weather * 6)]);
 	
 	
 	glBegin(GL_QUADS);
 	glTexCoord2f(0, 0); 
-	glVertex3f(tamanhoSky, -tamanhoSky, -tamanhoSky);
+	glVertex3f(tamanhoSky, -tamanhoSky, 0);
 	glTexCoord2f(1, 0); 
-	glVertex3f(-tamanhoSky, -tamanhoSky, -tamanhoSky);
+	glVertex3f(-tamanhoSky, -tamanhoSky, 0);
 	glTexCoord2f(1, 1); 
-	glVertex3f(-tamanhoSky, tamanhoSky, -tamanhoSky);
+	glVertex3f(-tamanhoSky, tamanhoSky, 0);
 	glTexCoord2f(0, 1); 
-	glVertex3f(tamanhoSky, tamanhoSky, -tamanhoSky);
+	glVertex3f(tamanhoSky, tamanhoSky, 0);
 	glEnd();
 
 	// Render the left quad
 	
-		glBindTexture(GL_TEXTURE_2D, texture[3 + (i * 6)]);
+		glBindTexture(GL_TEXTURE_2D, texture[3 + (weather * 6)]);
 	
 	glBegin(GL_QUADS);
 	glTexCoord2f(1, 0); glVertex3f(tamanhoSky, -tamanhoSky, tamanhoSky);
@@ -1414,7 +1415,7 @@ void skybox() {
 
 	// Render the back quad
 	
-		glBindTexture(GL_TEXTURE_2D, texture[8 + (i * 6)]);
+		glBindTexture(GL_TEXTURE_2D, texture[8 + (weather * 6)]);
 	
 	glBegin(GL_QUADS);
 	glTexCoord2f(1, 1); glVertex3f(-tamanhoSky, -tamanhoSky, tamanhoSky);
@@ -1426,7 +1427,7 @@ void skybox() {
 
 	// Render the right quad
 	
-		glBindTexture(GL_TEXTURE_2D, texture[5 + (i * 6)]);
+		glBindTexture(GL_TEXTURE_2D, texture[5 + (weather * 6)]);
 	
 	glBegin(GL_QUADS);
 	glTexCoord2f(0, 1); glVertex3f(-tamanhoSky, -tamanhoSky, -tamanhoSky);
@@ -1437,7 +1438,7 @@ void skybox() {
 
 	// Render the top quad
 	
-		glBindTexture(GL_TEXTURE_2D, texture[6 + (i * 6)]);
+		glBindTexture(GL_TEXTURE_2D, texture[6 + (weather * 6)]);
 	
 	glBegin(GL_QUADS);
 	glTexCoord2f(0, 1); glVertex3f(-tamanhoSky, tamanhoSky, -tamanhoSky);
@@ -1448,7 +1449,7 @@ void skybox() {
 
 	// Render the bottom quad
 
-		glBindTexture(GL_TEXTURE_2D, texture[7 + (i * 6)]);
+		glBindTexture(GL_TEXTURE_2D, texture[7 + (weather * 6)]);
 
 	glBegin(GL_QUADS);
 	glTexCoord2f(0, 1); glVertex3f(-tamanhoSky, -tamanhoSky, -tamanhoSky);
@@ -1594,7 +1595,7 @@ void display(void)
 	glPopAttrib();
 
 	material(cinza);
-	desenhaSolo();
+	//desenhaSolo();
 
 	
 	//desenhaEixos();
@@ -1626,31 +1627,26 @@ void display(void)
 		desenhaPlanoDrag(estado.eixoTranslaccao);
 
 	}
-	vector<string> vecHoras;
-	split(visita.horaInicio,vecHoras,':');
-	int hora = atoi(vecHoras.at(0).c_str());
-	
-	if(hora>14 && hora<18) {
-		weather = 1;
-	}
-	else if (hora>8 && hora<14) {
-		weather = 0;
-	}
-	else {
-		weather = 2;
-	}
+
 
 	skybox();
 
 	glDisable(GL_LIGHTING);
 	
-	if (atual.id!=0) {
-		glColor3f(0,0,0);
+	//if (atual.id!=0) {
+		if (weather == 2) {
+			glColor3f(1.0, 1.0, 1.0);
+		}
+		else {
+			glColor3f(0, 0, 0);
+		}
+	
+		printNomePOI(atual.id);
 		printPoi(atual);
-	}
+	//}
 
 	if (FPSSHOW) {
-
+		
 		printVisita();
 		printtext(400, 70, "Login : " + nome);
 
@@ -2214,6 +2210,8 @@ void static getPercursoHttp() {
 	//Send the request
 
 	clr->sendRequest(r);
+
+
 	//Get the Response
 
 	string resposta = clr->getResponse().c_str();
@@ -2842,9 +2840,13 @@ GLboolean detectaColisao(GLfloat nx, GLfloat ny, GLfloat nz)
 					{
 						nosVisitados[i] = 1;
 					}
-					//printNomePOI(nos[i].idPOI);
+				
 					if (visita.rota.id != 0) {
 						atual = visita.rota.pois.at(i);
+					
+					}
+					else {
+						printNomePOI(nos[i].idPOI);
 					}
 
 					return true;
@@ -3060,6 +3062,24 @@ void main(int argc, char **argv)
 	HAIL = GL_FALSE;
 	login = "Default";
 
+	vector<string> vecHoras;
+	split(visita.horaInicio, vecHoras, ':');
+
+	int hora = atoi(vecHoras.at(0).c_str());
+	if (visita.visitaId == 0) {
+		time_t theTime = time(NULL);
+		struct tm *aTime = localtime(&theTime);
+		hora = aTime->tm_hour;
+	}
+	if (hora>14 && hora<18) {
+		weather = 1;
+	}
+	else if (hora>8 && hora<14) {
+		weather = 0;
+	}
+	else {
+		weather = 2;
+	}
 	
 	//getPercursoHttp();
 
