@@ -8,6 +8,7 @@
 #include <GL/glut.h>
 #include <GL/GLAux.h>
 #include <iostream>
+#include <fstream>
 #include <stdio.h>
 #include <algorithm>
 #include <tchar.h>
@@ -184,6 +185,8 @@ string login;
 Estado estado;
 Modelo modelo;
 string nomePOI = "";
+string server;
+string porto;
 Poi atual;
 Visita visita;
 GLuint texture[21];
@@ -312,6 +315,15 @@ void initParticles(int i) {
 
 
 
+}
+
+void readServer() {
+	ifstream myfile;
+	myfile.open("server.txt");
+	myfile >> server;
+	myfile >> porto;
+	myfile.close();
+	
 }
 
 void calculateFPS()
@@ -1335,10 +1347,15 @@ int getMax() {
 	}
 
 	if (maxX>maxY) {
+	
 		return maxX;
+		
 	}
 	else {
+	
 		return maxY;
+	
+		
 	}
 
 	return maxX;
@@ -1514,19 +1531,20 @@ void setCamera(Camera *cam, objecto_t obj) {
 		y = obj.pos.y + sin(modelo.objeto.dir)* cos(estado.camera.dir_lat);
 		z = obj.pos.z + 7.5;
 		gluLookAt(cam->eye.x, cam->eye.y, cam->eye.z, x, y, z, 0, 0, 1);
-		putLights((GLfloat*)white_light);
+		//putLights((GLfloat*)white_light);
 	}
 	else {
 
 		if (estado.light) {			
 			gluLookAt(eye[0], eye[1], eye[2], modelo.objeto.pos.x, modelo.objeto.pos.y, modelo.objeto.pos.z, 0, 0, 1);
-			putLights((GLfloat*)white_light);
+			//putLights((GLfloat*)white_light);
 		}
 		else {
-			putLights((GLfloat*)white_light);
+			//putLights((GLfloat*)white_light);
 			gluLookAt(eye[0], eye[1], eye[2], modelo.objeto.pos.x, modelo.objeto.pos.y, modelo.objeto.pos.z, 0, 0, 1);
 		}
 	}
+	putLights((GLfloat*)white_light);
 }
 
 void setCameraUp() {
@@ -1785,6 +1803,7 @@ void keyboard(unsigned char key, int x, int y)
 			break;   
 		case 'q':
 		case 'Q':
+				
 				printf("Insira Nome de Utilizador:");
 				cin >> nome;
 				login = nome;
@@ -2172,8 +2191,8 @@ void static testeHttp() {
 	httpRequest r;
 	//Set the host,uri and headers
 	
-	r.setHost("localhost");
-	r.setUri("/Api/meteorologias");
+	r.setHost(server);
+	r.setUri("/api/pois");
 	r.addHeader("Connection: close");
 	
 	//Build the request
@@ -2182,6 +2201,7 @@ void static testeHttp() {
 	//Create the client
 	httpClient *cl = new httpClient();
 	//Send the request
+	cl->setPorto(porto);
 	cl->sendRequest(r);
 	//Get the Response
 	printf(r.getHost().c_str());
@@ -2198,7 +2218,7 @@ void static getPercursoHttp() {
 	//You create the request
 	httpRequest r;
 
-	r.setHost("localhost");
+	r.setHost(server);
 	r.setUri("/api/visitas");
 	r.addHeader("Connection: close");
 
@@ -2217,7 +2237,7 @@ void static getPercursoHttp() {
 	string resposta = clr->getResponse().c_str();
 
 	
-
+	
 	if (resposta.find("Visita") != std::string::npos) {
 
 		unsigned first = resposta.find("{");
@@ -2331,7 +2351,7 @@ void static getPercursoHttp() {
 
 			//Set the host,uri and headers
 
-			r.setHost("localhost");
+			r.setHost(server);
 			string ur = "/api/percursoes/" + numP;
 
 			r.setUri(ur);
@@ -2404,7 +2424,7 @@ void static getPercursoHttp() {
 				int soma = 0;
 				for (vector<string>::iterator it = lista.begin(); it != lista.end(); ++it) {
 					soma++;
-					r.setHost("localhost");
+					r.setHost(server);
 					string num = *it;
 					replace(num.begin(), num.end(), ',', ' ');
 					string uri = "/api/pois/" + num;
@@ -2477,7 +2497,7 @@ void static getPercursoHttp() {
 						replace(novaDuracao.begin(), novaDuracao.end(), '"', ' ');
 
 
-						r.setHost("localhost");
+						r.setHost(server);
 
 						std::string::iterator end_pos = std::remove(novaDescricao.begin(), novaDescricao.end(), ' ');
 						novaDescricao.erase(end_pos, novaDescricao.end());
@@ -2548,8 +2568,8 @@ void static getPercursoHttp() {
 							a.descricao = novaDescricao2;
 							a.duracaoVisita = atoi(novaDuracao.c_str());
 							a.nomeLocal = novoLocal;
-							a.x = 5 * soma;//stof(novaLongitude)/10+ rand() % 10+ -10; 
-							a.y = 0 * soma;//stof(novoNomeL)/10 + rand() % 10 + -10;
+							a.x = stof(novaLongitude) / 10;
+							a.y = stof(novoNomeL) / 10;
 
 
 							Arco b;
@@ -2691,7 +2711,7 @@ GLfloat novoZ(GLfloat nx, GLfloat ny, GLfloat nz) {
 				{
 					if (xi < nx && nx < xf)
 					{
-						return (tan(inclinacao) * dist) + OBJECTO_ALTURA * 0.5 + 2.5 + nos[nof].z;
+						return (tan(inclinacao) * dist) + OBJECTO_ALTURA * 0.5 + 2.5 ;
 					}
 
 				}
@@ -2746,7 +2766,8 @@ GLfloat novoZ(GLfloat nx, GLfloat ny, GLfloat nz) {
 					if (yi < nyy && nyy < yf)
 					{
 						//float z = tan(inclinacao) * (difx - (nxx - xi)) + OBJECTO_ALTURA * 0.5 + 2.5;
-						return tan(inclinacao) * dist + OBJECTO_ALTURA * 0.5 + 2.5;;
+						//if (inclinacao < 0) inclinacao = inclinacao*-1;
+						return tan(inclinacao) * dist + OBJECTO_ALTURA * 0.5;
 					}
 				}
 			}
@@ -2879,26 +2900,17 @@ GLboolean detectaColisao(GLfloat nx, GLfloat ny, GLfloat nz)
 			GLfloat xf = (nos[noi].x + (larg * 0.5)) * 5;
 
 
-			if (yi <0 && yf <0)
+	
+			if (yi < yf)
 			{
-				yi = yi * -1 + (nos[noi].largura * 0.5);
-				nyy = ny * -1;
-				yf = yf * -1 - (nos[nof].largura * 0.5);
+				yi = yi + (nos[noi].largura * 0.5);
+				yf = yf - (nos[nof].largura* 0.5);
 			}
-			else	if (yi<0 && yf >= 0)
-			{
-				yi = ((yi * -1) + 2 * yf) + (nos[nof].largura * 0.5);
-				yf = yf - (nos[noi].largura * 0.5);
-				nyy = ny * -1;
+			else {
+				yi = yi - (nos[noi].largura * 0.5);
+				yf = yf + (nos[nof].largura* 0.5);
 			}
-			else 	if (yi >= 0 && yf>0)
-			{
-				int aux = yi;
-				yi = yf + (nos[noi].largura * 0.5);
-				yf = aux - (nos[nof].largura * 0.5);;
-			}
-
-			if (yi > nyy && nyy > yf)
+			if (yi < nyy && nyy < yf)
 			{
 				if (xi < nx && nx < xf)
 				{
@@ -3082,7 +3094,7 @@ void main(int argc, char **argv)
 	}
 	
 	//getPercursoHttp();
-
+	readServer();
 	spamModel();
 	//testeHttp();
 	imprime_ajuda();

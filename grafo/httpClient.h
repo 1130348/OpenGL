@@ -24,9 +24,8 @@ class httpClient
 
 public:
 	httpClient();
-	void httpClient::setPorto(std::string por);
+	void httpClient::setPorto(std::string);
 	void sendRequest(httpRequest request);
-	std::string getPorto();
 
 	std::string getResponse();
 };

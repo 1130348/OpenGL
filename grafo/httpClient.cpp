@@ -11,7 +11,7 @@
 #pragma comment(lib, "ws2_32.lib")
 #pragma GCC diagnostic ignored "-Wwrite-strings"
 
-//Mudar Porto confomre o Porto da API
+//Mudar Porto conforme o Porto da API
 #define DEFAULT_PORT "18688"
 
 httpClient::httpClient()
@@ -34,7 +34,7 @@ void httpClient::connectTo(std::string ip)
 {
 	int wsResult = 0;
 
-	wsResult = getaddrinfo(ip.c_str(), DEFAULT_PORT, &this->hints, &result);
+	wsResult = getaddrinfo(ip.c_str(), porto.c_str(), &this->hints, &result);
 	if (wsResult != 0) {
 		std::cout << "getaddrinfo failed with error: " << wsResult << std::endl;
 		WSACleanup();
@@ -87,17 +87,22 @@ std::string httpClient::receive(httpRequest request)
 	{
 		//std::cout<<buffer<<std::endl;
 	}
-	else if (iResult == 0)
+	else if (iResult == 0) {
 		printf("Connection closed\n");
-	else
+	}
+	else {
 		printf("recv failed with error: %d\n", WSAGetLastError());
-
+	}
 	closesocket(this->connectSocket);
 	WSACleanup();
 
 	std::string s = buffer;
 
 	return s;
+}
+
+void httpClient::setPorto(std::string p) {
+	porto = p;
 }
 
 void httpClient::sendRequest(httpRequest request)
