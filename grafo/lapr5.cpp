@@ -79,6 +79,7 @@ extern "C" int read_JPEG_file(const char *, char **, int *, int *, int *);
 
 void static getPercursoHttp();
 void printNomePOI(int);
+void runTests();
 
 
 const GLfloat mat_ambient[][4] = {{0.33, 0.22, 0.03, 1.0},	// brass
@@ -199,6 +200,7 @@ string nome;
 GLboolean RAIN;
 GLboolean SNOW;
 GLboolean HAIL;
+bool CHEGOU;
 GLboolean   FULL;
 GLboolean   FPSSHOW;
 GLint		distanciaPercorrida;
@@ -231,6 +233,8 @@ Model_3DS modeloLello[2];
 int frameCount = 0;
 float fps2 = 0;
 int currentTime = 0, previousTime = 0;
+string minT;
+string temp;
 
 int lastTick = clock();
 int fpsLimit = 30;
@@ -291,6 +295,7 @@ void initEstado(){
 	estado.apresentaNormais=GL_FALSE;
 	estado.lightViewer=1;
 	TESTES = GL_FALSE;
+	CHEGOU = FALSE;
 	weather = 0;
 
 }
@@ -366,9 +371,9 @@ void initModelo(){
 	modelo.escala=0.2;
 
 	modelo.cor_cubo = brass;
-	modelo.g_pos_luz1[0]=-5.0;
-	modelo.g_pos_luz1[1]= 5.0;
-	modelo.g_pos_luz1[2]= 5.0;
+	modelo.g_pos_luz1[0]= 40;
+	modelo.g_pos_luz1[1]= 80;
+	modelo.g_pos_luz1[2]= 80;
 	modelo.g_pos_luz1[3]= 0.0;
 	modelo.g_pos_luz2[0]= 5.0;
 	modelo.g_pos_luz2[1]= -15.0;
@@ -469,42 +474,42 @@ void myInit(int janela)
 
 	modeloDragao[janela].Load("Modelos/Dragao/Dragao.3ds");
 	modeloDragao[janela].lit = true;
-	//modeloCasaMusica[janela].Load("Modelos/CasaMusica/CasaMusica.3ds");
-	//modeloCasaMusica[janela].lit = true;
-	//modeloClerigos[janela].Load("Modelos/clérigos/clérigos.3ds");
-	//modeloClerigos[janela].lit = true;
-	//modeloSBento[janela].Load("Modelos/Sbento/Sbento.3ds");
-	//modeloSBento[janela].lit = true;
-	//modeloSePorto[janela].Load("Modelos/SePorto/SePorto.3ds");
-	//modeloSePorto[janela].lit = true;
-	//modeloPBolsa[janela].Load("Modelos/Pbolsa/Pbolsa.3ds");
-	//modeloPBolsa[janela].lit = true;
-	//modeloSerralves[janela].Load("Modelos/Serralves/Serralves.3ds");
-	//modeloSerralves[janela].lit = true;
-	//modeloQueijo[janela].Load("Modelos/CQueijo/CQueijo.3ds"); 
-	//modeloQueijo[janela].lit = true;
-	//modeloSFrancisco[janela].Load("Modelos/SFrancisco/SFrancisco.3ds"); 
-	//modeloSFrancisco[janela].lit = true;
-	//modeloColiseu[janela].Load("Modelos/Coliseu/Coliseu.3ds"); 
-	//modeloColiseu[janela].lit = true;
-	//modeloPCristal[janela].Load("Modelos/PCristal/PCristal.3ds"); 
-	//modeloPCristal[janela].lit = true;
-	//modeloInfante[janela].Load("Modelos/Infante/Infante.3ds"); 
-	//modeloInfante[janela].lit = true;
-	//modeloAlfandega[janela].Load("Modelos/Alfandega/Alfandega.3ds"); 
-	//modeloAlfandega[janela].lit = true;
-	//modeloRivoli[janela].Load("Modelos/Rivoli/Rivoli.3ds"); 
-	//modeloRivoli[janela].lit = true;
-	//modeloBoavista[janela].Load("Modelos/RotBoavista/RotBoavista.3ds"); 
-	//modeloBoavista[janela].lit = true;
-	//modeloFerreiraB[janela].Load("Modelos/Mercado/Mercado.3ds"); 
-	//modeloFerreiraB[janela].lit = true;
-	//modeloJardBot[janela].Load("Modelos/jardBot/jardBot.3ds"); 
-	//modeloJardBot[janela].lit = true;
-	//modeloSealife[janela].Load("Modelos/sealife/sealife.3ds"); 
-	//modeloSealife[janela].lit = true;
-	//modeloLello[janela].Load("Modelos/Lello/Lello.3ds"); 
-	//modeloLello[janela].lit = true;
+	modeloCasaMusica[janela].Load("Modelos/CasaMusica/CasaMusica.3ds");
+	modeloCasaMusica[janela].lit = true;
+	modeloClerigos[janela].Load("Modelos/clérigos/clérigos.3ds");
+	modeloClerigos[janela].lit = true;
+	modeloSBento[janela].Load("Modelos/Sbento/Sbento.3ds");
+	modeloSBento[janela].lit = true;
+	modeloSePorto[janela].Load("Modelos/SePorto/SePorto.3ds");
+	modeloSePorto[janela].lit = true;
+	modeloPBolsa[janela].Load("Modelos/Pbolsa/Pbolsa.3ds");
+	modeloPBolsa[janela].lit = true;
+	modeloSerralves[janela].Load("Modelos/Serralves/Serralves.3ds");
+	modeloSerralves[janela].lit = true;
+	modeloQueijo[janela].Load("Modelos/CQueijo/CQueijo.3ds"); 
+	modeloQueijo[janela].lit = true;
+	modeloSFrancisco[janela].Load("Modelos/SFrancisco/SFrancisco.3ds"); 
+	modeloSFrancisco[janela].lit = true;
+	modeloColiseu[janela].Load("Modelos/Coliseu/Coliseu.3ds"); 
+	modeloColiseu[janela].lit = true;
+	modeloPCristal[janela].Load("Modelos/PCristal/PCristal.3ds"); 
+	modeloPCristal[janela].lit = true;
+	modeloInfante[janela].Load("Modelos/Infante/Infante.3ds"); 
+	modeloInfante[janela].lit = true;
+	modeloAlfandega[janela].Load("Modelos/Alfandega/Alfandega.3ds"); 
+	modeloAlfandega[janela].lit = true;
+	modeloRivoli[janela].Load("Modelos/Rivoli/Rivoli.3ds"); 
+	modeloRivoli[janela].lit = true;
+	modeloBoavista[janela].Load("Modelos/RotBoavista/RotBoavista.3ds"); 
+	modeloBoavista[janela].lit = true;
+	modeloFerreiraB[janela].Load("Modelos/Mercado/Mercado.3ds"); 
+	modeloFerreiraB[janela].lit = true;
+	modeloJardBot[janela].Load("Modelos/jardBot/jardBot.3ds"); 
+	modeloJardBot[janela].lit = true;
+	modeloSealife[janela].Load("Modelos/sealife/sealife.3ds"); 
+	modeloSealife[janela].lit = true;
+	modeloLello[janela].Load("Modelos/Lello/Lello.3ds"); 
+	modeloLello[janela].lit = true;
 
 	int x, z;
 
@@ -739,15 +744,14 @@ void putLights(GLfloat* diffuse)
 {
 	const GLfloat white_amb[] = {0.2, 0.2, 0.2, 1.0};
 
+	float specLight0[4] = {0.5f, 0.5f, 0.5f, 1.0f};
+	glLightfv(GL_LIGHT0, GL_SPECULAR, specLight0);
+//glMaterialfv(GL_FRONT, GL_SHININESS, 10.0f);
+
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
 	glLightfv(GL_LIGHT0, GL_SPECULAR, white_light);
 	glLightfv(GL_LIGHT0, GL_AMBIENT, white_amb);
 	glLightfv(GL_LIGHT0, GL_POSITION, modelo.g_pos_luz1);
-
-	glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse);
-	glLightfv(GL_LIGHT1, GL_SPECULAR, white_light);
-	glLightfv(GL_LIGHT1, GL_AMBIENT, white_amb);
-	glLightfv(GL_LIGHT1, GL_POSITION, modelo.g_pos_luz2);
 
 	/* desenhar luz */
 	material(red_plastic);
@@ -758,16 +762,9 @@ void putLights(GLfloat* diffuse)
 		glutSolidCube(0.1);
 		glEnable(GL_LIGHTING);
 	glPopMatrix();
-	glPushMatrix();
-		glTranslatef(modelo.g_pos_luz2[0], modelo.g_pos_luz2[1], modelo.g_pos_luz2[2]);
-		glDisable(GL_LIGHTING);
-		glColor3f(1.0, 1.0, 1.0);
-		glutSolidCube(0.1);
-		glEnable(GL_LIGHTING);
-	glPopMatrix();
 
 	glEnable(GL_LIGHT0);
-	glEnable(GL_LIGHT1);
+	//glEnable(GL_LIGHT1);
 }
 
 void desenhaSolo(){
@@ -843,7 +840,8 @@ void desenhaParede(GLfloat xi, GLfloat yi, GLfloat zi, GLfloat xf, GLfloat yf, G
 
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, texture[1]);
-
+	glEnable(GL_LIGHTING);
+	glEnable(GL_COLOR_MATERIAL);
 	GLdouble v1[3],v2[3],cross[3];
 	GLdouble length;
 	v1[0]=xf-xi;
@@ -877,6 +875,8 @@ void desenhaParede(GLfloat xi, GLfloat yi, GLfloat zi, GLfloat xf, GLfloat yf, G
 		desenhaNormal(xi,yi,zi+1,cross,emerald);
 	}
 
+	//glDisable(GL_LIGHTING);
+	glDisable(GL_COLOR_MATERIAL);
 	glDisable(GL_TEXTURE_2D);
 
 }
@@ -983,7 +983,11 @@ void desenhaChao(GLfloat xi, GLfloat yi, GLfloat zi, GLfloat xf, GLfloat yf, GLf
 	v1[1]=0;
 	v2[0]=0;
 	v2[1]=yf-yi;
-
+	if (weather!=2) {
+		glDisable(GL_LIGHTING);
+	}
+	
+	//glDisable(GL_LIGHTING);
 	switch(orient) {
 		case NORTE_SUL :
 				v1[2]=0;
@@ -1063,7 +1067,7 @@ void desenhaChao(GLfloat xi, GLfloat yi, GLfloat zi, GLfloat xf, GLfloat yf, GLf
 				}
 			break;
 	}
-
+	glEnable(GL_LIGHTING);
 	glDisable(GL_TEXTURE_2D);
 }
 
@@ -1253,13 +1257,27 @@ void desenhaLabirinto(int janela){
 		material(red_plastic);
 		for(int i=0; i<numNos; i++){
 			glPushMatrix();
+			if (nosVisitados[numNos - 1] == 1) {
+				CHEGOU = TRUE;
+			}
 			if (nosVisitados[i] == 1)
 			{
 				material(emerald);
 				glTranslatef(nos[i].x, nos[i].y, nos[i].z + 3);
 				glutSolidCube(0.5);
 			}
-			else {
+			else if (i==numNos-1) {
+				material(red_plastic);
+				glTranslatef(nos[i].x, nos[i].y, nos[i].z + 3);
+				glutSolidCube(0.5);
+				
+			}
+			else if (i == 0) {
+				material(azul);
+				glTranslatef(nos[i].x, nos[i].y, nos[i].z + 3);
+				glutSolidCube(0.5);
+			}else{
+
 				material(preto);
 				glTranslatef(nos[i].x, nos[i].y, nos[i].z + 3);
 				glutSolidCube(0.5);
@@ -1621,10 +1639,6 @@ void display(void)
 	desenhaLabirinto(0);
 
 
-	if (TESTES) {
-		
-	
-	}
 
 	if (RAIN) {
 		material(azul);
@@ -1663,7 +1677,11 @@ void display(void)
 		printPoi(atual);
 	//}
 
+		if (CHEGOU) {
+			printtext(300, 400, "Chegou ao Destino");
+		}
 	if (FPSSHOW) {
+
 		
 		printVisita();
 		printtext(400, 70, "Login : " + nome);
@@ -1679,13 +1697,18 @@ void display(void)
 			minu++;
 			tempoDecorrido = glutGet(GLUT_ELAPSED_TIME);
 		}
-		string minT = to_string(minu);
-		string temp = to_string(((glutGet(GLUT_ELAPSED_TIME) - tempoDecorrido) / 1000) / 60);
-		temp.erase(0, 1);
-		temp.pop_back();
-		temp.pop_back();
-		temp.pop_back();
-		temp.pop_back();
+		
+		if (!CHEGOU) {
+			minT = to_string(minu);
+			temp = to_string(((glutGet(GLUT_ELAPSED_TIME) - tempoDecorrido) / 1000) / 60);
+			temp.erase(0, 1);
+			temp.pop_back();
+			temp.pop_back();
+			temp.pop_back();
+			temp.pop_back();
+		}
+	
+		
 		printtext(400, 110, "Tempo Decorrido : " + minT + temp);
 		printtext(100, 50, nomePOI);
 
@@ -1884,12 +1907,7 @@ void keyboard(unsigned char key, int x, int y)
 			break;
 		case 'u':
 		case 'U':
-				if (TESTES) {
-					TESTES = !TESTES;
-				}
-				else {
-					TESTES = !TESTES;
-				}
+				runTests();
 				
 				glutPostRedisplay();
 				break;
@@ -1965,19 +1983,28 @@ void Special(int key, int x, int y){
 			break;	
 		case GLUT_KEY_UP:
 			estado.teclas.up = GL_TRUE;
-			distanciaPercorrida++;
+			if (!CHEGOU) {
+				distanciaPercorrida++;
+			}
+			
 			break;
 		case GLUT_KEY_DOWN:
 			estado.teclas.down = GL_TRUE;
-			distanciaPercorrida++;
+			if (!CHEGOU) {
+				distanciaPercorrida++;
+			}
 			break;
 		case GLUT_KEY_LEFT:
 			estado.teclas.left = GL_TRUE;
-			distanciaPercorrida++;
+			if (!CHEGOU) {
+				distanciaPercorrida++;
+			}
 			break;
 		case GLUT_KEY_RIGHT:
 			estado.teclas.right = GL_TRUE;
-			distanciaPercorrida++;
+			if (!CHEGOU) {
+				distanciaPercorrida++;
+			}
 			break;
 	}
 }
@@ -2227,6 +2254,7 @@ void static getPercursoHttp() {
 	printf(r.toString().c_str());
 	//Create the client
 	httpClient *clr = new httpClient();
+	clr->setPorto(porto);
 	//Send the request
 
 	clr->sendRequest(r);
@@ -2362,6 +2390,7 @@ void static getPercursoHttp() {
 			printf(r.toString().c_str());
 			//Create the client
 			httpClient *cl = new httpClient();
+			cl->setPorto(porto);
 			//Send the request
 
 			cl->sendRequest(r);
@@ -2436,6 +2465,7 @@ void static getPercursoHttp() {
 					r.buildRequest();
 					//Create the client
 					httpClient *cl2 = new httpClient();
+					cl2->setPorto(porto);
 					//Send the request
 
 					cl2->sendRequest(r);
@@ -2513,6 +2543,7 @@ void static getPercursoHttp() {
 						printf(r.toString().c_str());
 						//Create the client
 						httpClient *clLocal = new httpClient();
+						clLocal->setPorto(porto);
 						//Send the request
 
 						clLocal->sendRequest(r);
@@ -2617,8 +2648,12 @@ void static getPercursoHttp() {
 
 
 				int numArcos = visita.rota.pois.size() - 1;
-				int numNos = visita.rota.pois.size();
-				leGrafoHTTP(numNos, numArcos, visita.rota.pois, ligacoes);
+				int numNos2 = visita.rota.pois.size();
+				numNos = numNos2;
+				leGrafoHTTP(numNos2, numArcos, visita.rota.pois, ligacoes);
+				for (int i = 0; i < numNos;i++) {
+					nosVisitados[i] = 0;
+				}
 				spamModel();
 				//leGrafo();
 
@@ -2857,7 +2892,7 @@ GLboolean detectaColisao(GLfloat nx, GLfloat ny, GLfloat nz)
 			if (yi < ny && ny < yf) {
 				if (nz = z)
 				{
-					if (nosVisitados[i] == 0)
+					if (nosVisitados[i] == 0 || nosVisitados[i] == 2)
 					{
 						nosVisitados[i] = 1;
 					}
@@ -3033,7 +3068,7 @@ void main(int argc, char **argv)
 	if (!engine)
 		exit(0);
 
-	//engine->play2D("teste.mp3",true);
+	
 
     glutInit(&argc, argv);
 
@@ -3098,7 +3133,7 @@ void main(int argc, char **argv)
 	spamModel();
 	//testeHttp();
 	imprime_ajuda();
-
+	engine->play2D("teste.mp3", true);
     glutMainLoop();
 
 }
